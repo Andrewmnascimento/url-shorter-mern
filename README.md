@@ -5,11 +5,11 @@ A simple URL shortener built with Node.js ,Express and MongoDB in Backend and Re
 1. Install dependencies:
    ```bash
    cd backend
-   npm install # or pnpm install
+   pnpm install
    cd ../frontend
-   npm install # or pnpm install
+   pnpm install
 2. Start the development server:
    ```bash
    npm run dev # on frontend
    node server.js # on backend
-3. Open your browser and navigate to `http://localhost:5173` to access the frontend of the URL shortener.
+3. Open your browser and navigate to `http://localhost:5173` or other link if you defines to access the frontend of the URL shortener.
