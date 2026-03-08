@@ -1,9 +1,10 @@
 import pkg from "base62";
+const { encode,decode } = pkg;
 import { customAlphabet } from "nanoid";
 import type { Request, Response }  from "express"
 import { URL } from "../models/url.model.js"
 import type { url } from "../models/url.model.ts"
-const { encode,decode } = pkg
+
 
 export const createURL = async (req: Request, res: Response) => {
   const { longUrl } = req.body;

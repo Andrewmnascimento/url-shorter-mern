@@ -44,7 +44,7 @@ function App() {
       <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900">Encurtador de URL</h1>
           <p className="text-gray-500 mt-2 text-sm">Cole sua URL longa e obtenha um link curto</p>
-        </div>
+      </div>
 
       <Form onShortURLClick={onShortURLClick} isLoading={isLoading}/>
       {error && (
