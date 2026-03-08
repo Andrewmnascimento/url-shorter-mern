@@ -1,0 +1,44 @@
+services:
+  database:
+    image: mongo:7.0
+    container_name: mongodb_container
+    ports:
+      - "27017:27017"
+    deploy:
+      resources:
+        limits:
+          memory: 256M # Segurança para seus 8GB
+
+  api:
+    build: 
+      context: ./backend
+      target: development
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=350
+    volumes:
+      - ./backend:/app
+      - /app/node_modules # Truque: protege o node_modules do container
+    ports:
+      - "3000:3000" # Ajuste para a porta do seu Express/Node
+    depends_on:
+      - database
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+
+  web:
+    build:
+      context: ./frontend
+      target: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173" # Porta padrão do Vite
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          memory: 400M

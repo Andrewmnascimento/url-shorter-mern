@@ -3,12 +3,14 @@ import dotenv from "dotenv"
 
 dotenv.config({ path : './.env'});
 
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/urlShorterDB"
+
 export const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI!);
+    await mongoose.connect(mongoURI!);
     console.log("MongoDB conectado com sucesso")
   } catch (error: any) {
-    console.error('Erro ao conectar: ', error.message);
-    process.exit(1);
+    console.error('Erro ao conectar, tentando novamente em 5s...');
+    setTimeout(connectDB, 5000);
   }
 };

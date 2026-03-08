@@ -7,7 +7,12 @@ const { encode,decode } = pkg
 
 export const createURL = async (req: Request, res: Response) => {
   const { longUrl } = req.body;
-  console.log(longUrl);
+  
+  const existing = await URL.findOne({ longUrl });
+  if (existing) {
+    return res.status(200).json(existing.shortUrl);
+  }
+
   const generateID = customAlphabet('0123456789', 8);
   const newID: number = Number(generateID());
   const shortURL: string = encode(newID);
@@ -37,5 +42,5 @@ export const getURL  = async (req: Request, res: Response) => {
     return res.status(404).json({error: "URL não encontrado"});
   }
   const longUrl: string = url.longUrl;
-  return res.status(201).redirect("https://" + longUrl);
+  return res.status(201).redirect( longUrl );
 };

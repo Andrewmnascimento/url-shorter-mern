@@ -1,0 +1,32 @@
+# Dependências (O Docker deve instalar as dele, não usar as suas)
+node_modules
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Python (Arquivos temporários e ambientes virtuais)
+__pycache__
+*.py[cod]
+*$py.class
+.venv
+venv
+ENV
+.env
+
+# Builds e Pastas de Saída
+dist
+build
+out
+.next
+
+# Git e IDEs (Evita indexação desnecessária no Docker)
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Docker (O próprio Dockerfile não precisa ir para dentro da imagem)
+Dockerfile
+docker-compose.yml
+.dockerignore
