@@ -10,7 +10,7 @@ function App() {
   const [copied, setCopied] = useState(false);
 
   const createUrl = async (longUrl: string) => {
-    const response = await fetch(`${API_BASE}/api`, {
+    const response = await fetch(`${API_BASE}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json'},
       body: JSON.stringify({ longUrl: longUrl}),
@@ -25,7 +25,7 @@ function App() {
     setUrl("");
     try{
       const shortUrl = await createUrl(longUrl);
-      setUrl(`${API_BASE}/api?shortURL=${shortUrl}`);
+      setUrl(`${API_BASE}/${shortUrl}`);
     } catch {
       setError("Não foi possivel encurtar a URL. Tente Novamente");
     } finally {

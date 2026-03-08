@@ -1,13 +1,13 @@
 import { Schema, model } from "mongoose";
 
 const urlSchema = new Schema({
-  id: { type: Number, required: true },
+  clicks: { type: Number, default: 0},
   longUrl: { type: String, required: true},
-  shortUrl: { type: String, required : true}
+  shortUrl: { type: String, required : true, unique: true, index: true}
 }, { timestamps: true});
 
 export type url = {
-  id: number,
+  clicks: number,
   longUrl: string, 
   shortUrl: string
 }
