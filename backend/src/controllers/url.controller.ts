@@ -21,7 +21,7 @@ export const createURL = async (req: Request, res: Response) => {
 };
 
 export const getURL  = async (req: Request, res: Response) => {
-  const shortURL = String(req.query);
+  const shortURL = String(req.query.shortURL);
   const id: number = decode(shortURL);
 
   type filter = {
