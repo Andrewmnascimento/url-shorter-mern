@@ -7,7 +7,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M # Segurança para seus 8GB
+          memory: 256M
 
   api:
     build: 
@@ -17,9 +17,9 @@ services:
       - NODE_OPTIONS=--max-old-space-size=350
     volumes:
       - ./backend:/app
-      - /app/node_modules # Truque: protege o node_modules do container
+      - /app/node_modules
     ports:
-      - "3000:3000" # Ajuste para a porta do seu Express/Node
+      - "3000:3000"
     depends_on:
       - database
     deploy:
@@ -35,7 +35,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "5173:5173" # Porta padrão do Vite
+      - "5173:5173" 
     depends_on:
       - api
     deploy:
