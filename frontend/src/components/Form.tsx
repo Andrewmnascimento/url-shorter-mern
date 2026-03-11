@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { Input } from "./Input";
+import { Button } from "./Button";
 
 interface FormProps {
   onShortURLClick: (longURL: string) => void;
   isLoading?: boolean;
 }
 
-export const Form = ({ onShortURLClick, isLoading = false }: FormProps) => {
+export const UrlForm = ({ onShortURLClick, isLoading = false }: FormProps) => {
   const [longURL, setLongURL] = useState("");
   const [error, setError] = useState("");
   
@@ -34,21 +36,17 @@ export const Form = ({ onShortURLClick, isLoading = false }: FormProps) => {
   return (
     <div className="flex flex-col items-center gap-2 w-full max-w-xl">
       <div className="flex w-full gap-2">
-        <input type="text" 
-        placeholder="Insira aqui a sua url" 
-        className="flex-1 rounded-lg border-2 border-gray-300 h-11 px-4 text-sm focus:outline-none focus:border-black transition-colors" 
+        <Input type="text" 
+        placeholder="Insira aqui a sua url"  
         onChange={(event) => setLongURL(event.currentTarget.value)}
         onKeyDown={ (event) => event.key == "Enter" && handleSubmit()}
         />
-        <button 
-        className="rounded-lg bg-black text-white font-semibold px-5 h-11 text-sm
-                     hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors whitespace-nowrap" 
-        onClick={handleSubmit}
-        disabled={isLoading}
+        <Button 
+          onClick={handleSubmit}
+          disabled={isLoading}
         >
         {isLoading ? "Encurtando..." : "Encurtar URL"}
-        </button>
+        </Button>
       </div>
 
       {error && (

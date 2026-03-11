@@ -1,5 +1,7 @@
-import { Form } from "./components/Form"
+import { UrlForm } from "./components/Form"
 import { useState } from "react"
+import { LoginForm } from "./components/LoginForm";
+import { Button } from "./components/Button";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
 
@@ -8,6 +10,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const createUrl = async (longUrl: string) => {
     const response = await fetch(`${API_BASE}/`, {
@@ -39,31 +42,84 @@ function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLoginClick = async (email: string, password: string) => {
+    try{
+      const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json'},
+      body: JSON.stringify({ email: email, password: password }),
+      credentials: 'include'
+    });
+      if (!response.ok) throw new Error("Erro ao fazer login.");
+      setIsLoggedIn(true);
+      return true;
+    } catch {
+      setError("Erro ao fazer login. Tente Novamente");
+    }
+  };
+
+  const handleRegisterClick = async (email: string, password: string) => {
+    try{
+      const response = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json'},
+      body: JSON.stringify({ email: email, password: password }),
+      credentials: 'include'
+    });
+      if (!response.ok) throw new Error("Erro ao fazer registro.");
+      setIsLoggedIn(true);
+      return true;
+    } catch {
+      setError("Erro ao registrar. Tente Novamente");
+    }
+  };
+
+  const handleLogoutClick = async () => {
+    try{
+      const response = await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+      if (!response.ok) throw new Error("Erro ao fazer logout.");
+      setIsLoggedIn(false);
+    } catch {
+      setError("Erro ao fazer logout. Tente Novamente");
+    }
+  }
+
   return (
     <div className="flex flex-col items-center m-3 w-screen h-screen gap-2">
-      <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900">Encurtador de URL</h1>
-          <p className="text-gray-500 mt-2 text-sm">Cole sua URL longa e obtenha um link curto</p>
-      </div>
-
-      <Form onShortURLClick={onShortURLClick} isLoading={isLoading}/>
-      {error && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
-            {error}
+      {isLoggedIn ? ( 
+        <>
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900">Encurtador de URL</h1>
+            <p className="text-gray-500 mt-2 text-sm">Cole sua URL longa e obtenha um link curto</p>
           </div>
-        )}
 
-      {url && (
-         <div className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
-         <span className="text-sm text-gray-700 truncate">{url}</span>
-         <button
-          onClick={handleCopy}
-          className="shrink-0 text-sm font-semibold px-4 py-1.5 rounded-md bg-black text-white hover:bg-gray-800 transition-colors"
-          >
-          {copied ? "Copiado ✓" : "Copiar"}
-          </button>
-          </div>
-      )}      
+          <UrlForm onShortURLClick={onShortURLClick} isLoading={isLoading}/>
+          {error && (
+            <div className="w-full bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          {url && (
+            <div className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+              <span className="text-sm text-gray-700 truncate">{url}</span>
+              <Button
+                onClick={handleCopy}
+              >
+                {copied ? "Copiado ✓" : "Copiar"}
+              </Button>
+            </div>
+          )}
+          <Button disabled={false} onClick={() => handleLogoutClick()}>Sair</Button>
+        </>
+      ): (
+        <>
+          <LoginForm handleLoginClick={handleLoginClick} handleRegisterClick={handleRegisterClick} />
+        </>
+      )}
     </div>
   )
 }
