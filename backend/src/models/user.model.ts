@@ -19,7 +19,7 @@ type UserModel = Model<IUser, Record<string, never>, UserMethods>;
 
 const userSchema = new Schema<IUser, UserModel, UserMethods>(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: false, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
     refreshToken: { type: String, default: null },

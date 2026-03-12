@@ -2,52 +2,75 @@ import jwt from 'jsonwebtoken';
 import validator from 'validator';
 import type { Request, Response} from "express";
 import { User } from '../models/user.model.js';
+import type { JwtPayload } from '../types/auth.types.js';
 
 export const loginRoute = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  if (!email || !password || !validator.isEmail(email)){
-    return res.status(401).json({error: "Insira email e senha!!!"});
-  };
-  const user = await User.findOne({ email: email});
-  if (!user){
-    return res.status(401).json({ error: "Não existe usuario com esse email"});
+  const authHeader = req.headers.authorization;
+  if(authHeader?.startsWith("Bearer ")){
+    if (!authHeader) return res.status(401).json({error: "Não existe token"});
+    const token = authHeader.split(" ")[1] as string;
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+      if (!payload) return res.status(400).json({error: "O token não foi validado pelo servidor"});
+      const user = await User.findOne({ email: payload.email });
+      if (!user) return res.status(400).json({error: "Não existe esse usuario"});
+      return res.status(200).json({ message: "Login bem-sucedido!"});
+    } catch (err: any) {
+      return res.status(401).json({error: "Token inválido"});
+    }
+  } else { 
+    const { email, password } = req.body;
+    if (!email || !password || !validator.isEmail(email)){
+      return res.status(401).json({error: "Insira email e senha!!!"});
+    };
+    const user = await User.findOne({ email: email});
+    if (!user){
+      return res.status(401).json({ error: "Não existe usuario com esse email"});
+    }
+
+    const isMatch = await user.comparePassword(password);
+
+    if(!isMatch){
+      return res.status(400).json({error: "A senha está incorreta!"});
+    }
+
+    const accessToken = jwt.sign(
+      {sub: user._id.toString(), email: user.email},
+      process.env.JWT_SECRET!,
+      {expiresIn: "1h"}
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_SECRET!,
+      { expiresIn: "7d"}
+    );
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("accessToken", accessToken, {
+      maxAge: 60 * 60 * 1000, 
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax'
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax'
+    });
+    
+    return res.status(200).json({ message: "Login bem-sucedido!"});
   }
-
-  const isMatch = await user.comparePassword(password);
-
-  if(!isMatch){
-    return res.status(400).json({error: "A senha está incorreta!"});
-  }
-
-  const accessToken = jwt.sign(
-    {sub: user._id.toString(), email: user.email},
-    process.env.JWT_SECRET!,
-    {expiresIn: "1h"}
-  );
-
-  const refreshToken = jwt.sign(
-    { id: user._id },
-    process.env.REFRESH_SECRET!,
-    { expiresIn: "7d"}
-  );
-
-  user.refreshToken = refreshToken;
-  await user.save();
-
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 1000, 
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax"
-  });
-
-  return res.status(200).json({ message: "Login bem-sucedido!" });
 };
 
 export const registerRoute = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
-  if ( !name ||!email || !password || !validator.isEmail(email)){ 
+  const { email, password } = req.body;
+  if ( !email || !password || !validator.isEmail(email)){ 
     return res.status(401).json({ error : "Insira um nome, email e senha"}); 
   };
 
@@ -61,7 +84,7 @@ export const registerRoute = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Email já cadastrado!"});
   }
   
-  const newUser = new User({ name, email, password });
+  const newUser = new User({ email, password });
   await newUser.save();
   return res.status(201).json({ message: "Usuario criado com sucesso!" });
 };

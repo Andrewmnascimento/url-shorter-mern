@@ -2,6 +2,7 @@ import { UrlForm } from "./components/Form"
 import { useState } from "react"
 import { LoginForm } from "./components/LoginForm";
 import { Button } from "./components/Button";
+import Cookies from "js-cookie";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
 
@@ -13,9 +14,10 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const createUrl = async (longUrl: string) => {
+    const jwtAccessToken = Cookies.get("accessToken");
     const response = await fetch(`${API_BASE}/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json', ...(jwtAccessToken ? { "Authorization": `Bearer ${jwtAccessToken}` } : {})},
       body: JSON.stringify({ longUrl: longUrl}),
     });
     if (!response.ok) throw new Error("Erro ao encurtar a URL.");
@@ -50,11 +52,15 @@ function App() {
       body: JSON.stringify({ email: email, password: password }),
       credentials: 'include'
     });
-      if (!response.ok) throw new Error("Erro ao fazer login.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao fazer login.");
+      }
       setIsLoggedIn(true);
       return true;
-    } catch {
-      setError("Erro ao fazer login. Tente Novamente");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao fazer login. Tente Novamente";
+      setError(message);
     }
   };
 
@@ -66,11 +72,15 @@ function App() {
       body: JSON.stringify({ email: email, password: password }),
       credentials: 'include'
     });
-      if (!response.ok) throw new Error("Erro ao fazer registro.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao fazer registro.");
+      }
       setIsLoggedIn(true);
       return true;
-    } catch {
-      setError("Erro ao registrar. Tente Novamente");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao registrar. Tente Novamente";
+      setError(message);
     }
   };
 
