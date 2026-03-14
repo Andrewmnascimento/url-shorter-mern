@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path : './.env'});
 
-const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/urlShorterDB";
+const mongoURI = process.env.MONGO_URI || "mongodb://database:27017/urlShorterDB";
 
 export const connectDB = async () => {
   try {

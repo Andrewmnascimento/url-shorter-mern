@@ -4,7 +4,8 @@ import { LoginForm } from "./components/LoginForm";
 import { Button } from "./components/Button";
 import Cookies from "js-cookie";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
+const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_URL ?? "http://localhost:3000";
 
 function App() {
   const [url, setUrl] = useState("");
@@ -30,7 +31,7 @@ function App() {
     setUrl("");
     try{
       const shortUrl = await createUrl(longUrl);
-      setUrl(`${API_BASE}/${shortUrl}`);
+      setUrl(`${BACKEND_URL}/${shortUrl}`);
     } catch {
       setError("Não foi possivel encurtar a URL. Tente Novamente");
     } finally {
@@ -45,6 +46,7 @@ function App() {
   };
 
   const handleLoginClick = async (email: string, password: string) => {
+    setError("");
     try{
       const response = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
@@ -65,6 +67,7 @@ function App() {
   };
 
   const handleRegisterClick = async (email: string, password: string) => {
+    setError("");
     try{
       const response = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
@@ -107,11 +110,6 @@ function App() {
           </div>
 
           <UrlForm onShortURLClick={onShortURLClick} isLoading={isLoading}/>
-          {error && (
-            <div className="w-full bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
-              {error}
-            </div>
-          )}
 
           {url && (
             <div className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
@@ -130,6 +128,11 @@ function App() {
           <LoginForm handleLoginClick={handleLoginClick} handleRegisterClick={handleRegisterClick} />
         </>
       )}
+      {error && (
+            <div className="w-full bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
+              {error}
+            </div>
+          )}
     </div>
   )
 }
