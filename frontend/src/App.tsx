@@ -13,6 +13,7 @@ function App() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [originalRetry, setOriginalRetry] = useState(false);
 
   const createUrl = async (longUrl: string) => {
     const jwtAccessToken = Cookies.get("accessToken");
@@ -20,11 +21,27 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(jwtAccessToken ? { "Authorization": `Bearer ${jwtAccessToken}` } : {})},
       body: JSON.stringify({ longUrl: longUrl}),
+      credentials: 'include'
     });
     if (!response.ok) throw new Error("Erro ao encurtar a URL.");
     const shortUrl = await response.json();
     return shortUrl;
   };
+
+  const onRefresh = async (err: { code?: number }): Promise<string | undefined> => {
+    setOriginalRetry(true);
+    if (err.code === 401 && originalRetry) {
+      const responseRefresh = await fetch(`${API_BASE}/auth/refresh`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (responseRefresh.ok) {
+        return "Deu tudo certo!";
+      }
+    }
+    return undefined;
+  }
+
   const onShortURLClick = async (longUrl: string) => {
     setIsLoading(true);
     setError("");
@@ -32,8 +49,10 @@ function App() {
     try{
       const shortUrl = await createUrl(longUrl);
       setUrl(`${BACKEND_URL}/${shortUrl}`);
-    } catch {
-      setError("Não foi possivel encurtar a URL. Tente Novamente");
+    } catch (err: unknown) {
+      await onRefresh(err as { code?: number });
+      const shortUrl = await createUrl(longUrl);
+      setUrl(`${BACKEND_URL}/${shortUrl}`);
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +122,7 @@ function App() {
   return (
     <div className="flex flex-col items-center m-3 w-screen h-screen gap-2">
       {isLoggedIn ? ( 
-        <>
+        <div>
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900">Encurtador de URL</h1>
             <p className="text-gray-500 mt-2 text-sm">Cole sua URL longa e obtenha um link curto</p>
@@ -122,11 +141,12 @@ function App() {
             </div>
           )}
           <Button disabled={false} onClick={() => handleLogoutClick()}>Sair</Button>
-        </>
+        </div>
       ): (
-        <>
+        <div className="flex flex-col gap-3 justify-center items-center">
+          <h1 className="text-4xl font-bold text-gray-900">Faça Cadastro ou login para acessar o encurtador de URL!!</h1>
           <LoginForm handleLoginClick={handleLoginClick} handleRegisterClick={handleRegisterClick} />
-        </>
+        </div>
       )}
       {error && (
             <div className="w-full bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">

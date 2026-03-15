@@ -11,7 +11,7 @@ export const LoginForm = ({ handleLoginClick, handleRegisterClick }: { handleLog
         <Input placeholder="Email" type="email" onKeyDown={() => {}} onChange={event => setEmail(event.currentTarget.value)}/>
         <Input placeholder="Password" type="password" onKeyDown={() => {}} onChange={event => setPassword(event.currentTarget.value)}/>
       </div>
-      <div className="flex w-full gap-2">
+      <div className="flex w-full gap-2 justify-center">
         <Button onClick={() => handleLoginClick(email, password) } disabled={false}>Login</Button>
         <Button onClick={() => handleRegisterClick(email, password) } disabled={false}>Register</Button>
       </div>

@@ -114,7 +114,7 @@ export const logoutRoute = async (req: Request, res: Response) => {
 };
 
 export const refreshRoute = async (req: Request, res: Response) => {
-  const refreshToken = req.body;
+  const refreshToken = req.cookies.refreshToken;
   if (!refreshToken){
     return res.status(400).json({ error: "Nenhum token de atualização fornecido!"});
   };
@@ -130,7 +130,15 @@ export const refreshRoute = async (req: Request, res: Response) => {
       process.env.JWT_SECRET!,
       { expiresIn: "1h" }
     );
-    return res.status(200).json({ accessToken: newAccessToken });
+    
+    res.cookie("accessToken", newAccessToken, {
+      maxAge: 60 * 60 * 1000, 
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax'
+    });
+    
+    return res.status(200).json({ message: "Refresh enviado com sucesso" });
   } catch (err: any) {
     return res.status(400).json({ error: "Token de atualização inválido!" });
   }
