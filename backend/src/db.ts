@@ -5,6 +5,8 @@ dotenv.config({ path : './.env'});
 
 const mongoURI = process.env.MONGO_URI || "mongodb://database:27017/urlShorterDB";
 
+mongoose.set('sanitizeFilter', true);
+
 export const connectDB = async () => {
   try {
     await mongoose.connect(mongoURI!);
