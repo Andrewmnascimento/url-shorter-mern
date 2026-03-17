@@ -1,9 +1,0 @@
-{
-  "name": "Url Shorter - Backend Node/Express",
-  "dockerComposeFile": "../../docker-compose.yml",
-  "service": "api",
-  "workspaceFolder": "/app",
-  "forwardPorts": [3000],
-  "features": { "ghcr.io/devcontainers/features/node:1": {"version": "20" } },
-  "postCreateCommand": "npm ci"
-}

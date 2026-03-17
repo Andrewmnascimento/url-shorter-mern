@@ -1,9 +1,0 @@
-{
-  "name":"Url Shorter - Frontend Vite-React",
-  "dockerComposeFile" : "../../docker-compose.yml",
-  "service": "web",
-  "workspaceFolder": "/app",
-  "forwardPorts": [5173],
-  "features": { "ghcr.io/devcontainers/features/node:1" : { "version": "20" }},
-  "postCreateCommand": "npm ci"
-}

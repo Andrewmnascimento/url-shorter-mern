@@ -6,9 +6,12 @@ import dotenv from "dotenv";
 import urlRoutes from "./routes/url.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import { connectDB } from "./db.js";
+import { requestLogger } from "./middleware/request-logger.middleware.js";
+import { createLogger } from "./utils/logger.js";
 
 dotenv.config({ path : './.env'});
 
+const logger = createLogger("SERVER");
 const PORT = Number(process.env.PORT) || 3000;
 
 const app = express();
@@ -30,7 +33,7 @@ app.use(cors({
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`Origem não permitida detectada: ${origin}`);
+      logger.warn(`Blocked origin: ${origin}`);
       callback(null, false);
     }
   },
@@ -38,15 +41,16 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
+app.use(requestLogger);
 app.use(express.json());
 app.use(helmet());
 app.use(cookieParser());
-
 connectDB();
 
 app.use("/", urlRoutes);
 app.use("/auth", authRouter);
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`🚀 Server running on port ${PORT}`);
+  logger.info(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
 });

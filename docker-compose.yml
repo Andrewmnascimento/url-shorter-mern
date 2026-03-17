@@ -8,6 +8,15 @@ services:
       resources:
         limits:
           memory: 256M
+  cashe:
+    image: redis:alpine
+    container_name: redis-container
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 300MB
 
   api:
     build: 
