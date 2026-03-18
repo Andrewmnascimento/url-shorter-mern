@@ -14,7 +14,7 @@ dotenv.config({ path : './.env'});
 const logger = createLogger("SERVER");
 const PORT = Number(process.env.PORT) || 3000;
 
-const app = express();
+const app: any = express();
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -23,8 +23,8 @@ const allowedOrigins = [
   'http://172.18.0.4:5173'
 ].filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (!origin) return callback(null, true);
 
     const cleanOrigin = origin.replace(/\/$/, "");
@@ -40,7 +40,9 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(requestLogger);
 app.use(express.json());
 app.use(helmet());

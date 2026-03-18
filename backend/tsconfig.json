@@ -17,7 +17,7 @@
     "moduleResolution": "nodenext",
     "preserveSymlinks": true,
     "target": "esnext",
-    "types": [],
+    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -53,6 +53,6 @@
     "esModuleInterop": true,
     "allowJs": true,
     "checkJs": false,
-    "allowSyntheticDefaultImports": false,
+    "allowSyntheticDefaultImports": true,
   }
 }

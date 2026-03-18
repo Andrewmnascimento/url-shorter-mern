@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import validator from "validator";
-import type { Request, Response }  from "express"
+import type { Request, Response } from "express-serve-static-core";
 import { URL } from "../models/url.model.js"
 import type { Url } from "../models/url.model.js"
 import { redisClient } from "../db.js";
@@ -10,12 +10,14 @@ export const createURL = async (req: Request, res: Response) => {
   const { longUrl } = req.body;
   
   if(!validator.isURL(longUrl)) {
-    return res.status(400).json({ error: "URL Invalida"})
+    res.status(400).json({ error: "URL Invalida"});
+    return;
   };
 
   const existing = await URL.findOne({ longUrl });
   if (existing) {
-    return res.status(200).json(existing.shortUrl);
+    res.status(200).json(existing.shortUrl);
+    return;
   }
 
   let shortURL: string;
@@ -40,7 +42,7 @@ export const createURL = async (req: Request, res: Response) => {
 type Params = {
   shortURL: string
 };
-export const getURL  = async (req: Request<Params>, res: Response) => {
+export const getURL  = async (req: Request, res: Response) => {
   const shortURL = req.params.shortURL;
   if (shortURL === "favicon.ico") return res.status(204).end();
   const url = await redisClient.get(shortURL);
@@ -50,15 +52,17 @@ export const getURL  = async (req: Request<Params>, res: Response) => {
   } else {
     const dbUrl = await URL.findOne({shortUrl: shortURL});
     if (!dbUrl){
-      return res.status(404).json({error: "URL não encontrado"});
+      res.status(404).json({error: "URL não encontrado"});
+      return;
     }
     longUrl = dbUrl.longUrl;
-    await redisClient.set(shortURL, longUrl, {EX: 3600});
+    await redisClient.set(shortURL, longUrl, {EX: 3600 } as any);
   }
-  if(!longUrl) {return res.status(404).json({error: "URL não encontrado"})};
+  if(!longUrl) {res.status(404).json({error: "URL não encontrado"}); return;};
   await URL.updateOne(
     { shortUrl: shortURL},
     {$inc : {clicks: 1}}
   );
-  return res.redirect( longUrl );
+  res.redirect( longUrl );
+  return;
 };

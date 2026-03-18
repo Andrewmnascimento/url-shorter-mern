@@ -1,12 +1,13 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express-serve-static-core";
 import { createLogger } from "../utils/logger.js";
 
 const logger = createLogger("HTTP");
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
-  const { method, path, ip } = req;
-  
+  const method = req.method;
+  const path = req.path;
+
   logger.request(method, path);
   
   const originalSend = res.send;

@@ -2,6 +2,7 @@ import { loginRoute, registerRoute, logoutRoute, refreshRoute} from '../controll
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import rateLimit from "express-rate-limit";
+import type { NextFunction, RequestHandler } from 'express-serve-static-core';
    
  // Criar limitador para login
  const loginLimiter = rateLimit({
@@ -19,11 +20,11 @@ const registerLimiter = rateLimit({
   message: "Muitas tentativas de registro. Tente novamente em 1 hora.",
 });
 
-const authRouter: Router = Router();
+const authRouter = Router();
 
-authRouter.post('/register', registerLimiter, registerRoute);
-authRouter.post('/login', loginLimiter, loginRoute);
-authRouter.post('/logout', authMiddleware,logoutRoute);
+authRouter.post('/register', registerLimiter as unknown as RequestHandler, registerRoute);
+authRouter.post('/login', loginLimiter as unknown as RequestHandler, loginRoute);
+authRouter.post('/logout', authMiddleware as RequestHandler,logoutRoute);
 authRouter.post('/refresh', refreshRoute);
 
 export default authRouter;

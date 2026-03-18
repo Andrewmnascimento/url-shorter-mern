@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express-serve-static-core";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "../types/auth.types.ts";
 import { createLogger } from "../utils/logger.js";
@@ -16,6 +16,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   } catch (error){
     const errorMessage = error instanceof Error ? error.message : "Invalid token";
     logger.warn(`Authentication failed: ${errorMessage}`);
-    return res.status(401).json({ error: errorMessage });
+    res.status(401).json({ error: errorMessage });
+    return;
   };
 }

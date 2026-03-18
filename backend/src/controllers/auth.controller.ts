@@ -1,37 +1,48 @@
 import jwt from 'jsonwebtoken';
 import validator from 'validator';
-import type { Request, Response} from "express";
+import type { Request, Response } from "express-serve-static-core";
 import { User } from '../models/user.model.js';
 import type { JwtPayload } from '../types/auth.types.js';
 
 export const loginRoute = async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   if(authHeader?.startsWith("Bearer ")){
-    if (!authHeader) return res.status(401).json({error: "Não existe token"});
+    if (!authHeader) {
+      res.status(401).json({error: "Não existe token"});
+      return; 
+    }  
     const token = authHeader.split(" ")[1] as string;
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
-      if (!payload) return res.status(400).json({error: "O token não foi validado pelo servidor"});
+      if (!payload) {
+        res.status(400).json({error: "O token não foi validado pelo servidor"});
+        return 
+      }
       const user = await User.findOne({ email: payload.email });
-      if (!user) return res.status(400).json({error: "Não existe esse usuario"});
-      return res.status(200).json({ message: "Login bem-sucedido!"});
+      if (!user) { res.status(400).json({error: "Não existe esse usuario"}); return; }
+      res.status(200).json({ message: "Login bem-sucedido!"});
+      return;
     } catch (err: any) {
-      return res.status(401).json({error: "Token inválido"});
+      res.status(401).json({error: "Token inválido"});
+      return 
     }
   } else { 
     const { email, password } = req.body;
     if (!email || !password || !validator.isEmail(email)){
-      return res.status(401).json({error: "Insira email e senha!!!"});
+      res.status(401).json({error: "Insira email e senha!!!"});
+      return;
     };
     const user = await User.findOne({ email: email});
     if (!user){
-      return res.status(401).json({ error: "Não existe usuario com esse email"});
+      res.status(401).json({ error: "Não existe usuario com esse email"});
+      return;
     }
 
     const isMatch = await user.comparePassword(password);
 
     if(!isMatch){
-      return res.status(400).json({error: "A senha está incorreta!"});
+      res.status(400).json({error: "A senha está incorreta!"});
+      return;
     }
 
     const accessToken = jwt.sign(
@@ -53,7 +64,7 @@ export const loginRoute = async (req: Request, res: Response) => {
       maxAge: 60 * 60 * 1000, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: 'lax'
+      sameSite: "lax"
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -64,41 +75,48 @@ export const loginRoute = async (req: Request, res: Response) => {
       sameSite: 'lax'
     });
     
-    return res.status(200).json({ message: "Login bem-sucedido!"});
+    res.status(200).json({ message: "Login bem-sucedido!"});
+    return ;
   }
 };
 
 export const registerRoute = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if ( !email || !password || !validator.isEmail(email)){ 
-    return res.status(401).json({ error : "Insira um nome, email e senha"}); 
+    res.status(401).json({ error : "Insira um nome, email e senha"}); 
+    return;
   };
 
   const verifyPasswordResult = verifyPassword(password);
   if (!verifyPasswordResult.valid){
-    return res.status(400).json({ error: verifyPasswordResult.error });
+    res.status(400).json({ error: verifyPasswordResult.error });
+    return;
   }
 
   const existingUser = await User.findOne({ email: email });
   if (existingUser){
-    return res.status(400).json({ error: "Email já cadastrado!"});
+    res.status(400).json({ error: "Email já cadastrado!"});
+    return;
   }
   
   const newUser = new User({ email, password });
   await newUser.save();
-  return res.status(201).json({ message: "Usuario criado com sucesso!" });
+  res.status(201).json({ message: "Usuario criado com sucesso!" });
+  return
 };
 
 export const logoutRoute = async (req: Request, res: Response) => {
   try{
     const refreshToken = req.cookies.refreshToken;
   if (!refreshToken){
-    return res.status(400).json({ error: "Nenhum token de atualização encontrado!"});
+    res.status(400).json({ error: "Nenhum token de atualização encontrado!"});
+    return;
   }
 
   const user = await User.findOne({ refreshToken: refreshToken });
   if (!user){
-    return res.status(400).json({ error: "Token de atualização inválido!"});
+    res.status(400).json({ error: "Token de atualização inválido!"});
+    return ;
   }
 
   user.refreshToken = null;
@@ -107,20 +125,24 @@ export const logoutRoute = async (req: Request, res: Response) => {
   res.clearCookie("accessToken", { path: "/" });
   res.clearCookie("refreshToken", { path: "/" });
 
-  return res.status(200).json({ message: "Logout bem-sucedido!" });
+  res.status(200).json({ message: "Logout bem-sucedido!" });
+  return;  
   } catch (err: any) {
-    return res.status(500).json({ error: "Erro ao fazer logout: " + err.message });
+    res.status(500).json({ error: "Erro ao fazer logout: " + err.message });
+    return;
   }
 };
 
 export const refreshRoute = async (req: Request, res: Response) => {
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken){
-    return res.status(400).json({ error: "Nenhum token de atualização fornecido!"});
+    res.status(400).json({ error: "Nenhum token de atualização fornecido!"});
+    return ;
   };
   const user = await User.findOne({ refreshToken: refreshToken });
   if (!user){
-    return res.status(400).json({ error: "Token de atualização inválido!"});
+    res.status(400).json({ error: "Token de atualização inválido!"});
+    return ;
   }
 
   try {
@@ -138,9 +160,11 @@ export const refreshRoute = async (req: Request, res: Response) => {
       sameSite: 'lax'
     });
     
-    return res.status(200).json({ message: "Refresh enviado com sucesso" });
+    res.status(200).json({ message: "Refresh enviado com sucesso" });
+    return;
   } catch (err: any) {
-    return res.status(400).json({ error: "Token de atualização inválido!" });
+    res.status(400).json({ error: "Token de atualização inválido!" });
+    return ;
   }
 };
 
