@@ -14,6 +14,8 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "preserveSymlinks": true,
     "target": "esnext",
     "types": [],
     // For nodejs:
@@ -50,6 +52,7 @@
     "outDir": "./dist",
     "esModuleInterop": true,
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "allowSyntheticDefaultImports": false,
   }
 }

@@ -6,7 +6,7 @@ const urlSchema = new Schema({
   shortUrl: { type: String, required : true, unique: true, index: true}
 }, { timestamps: true});
 
-export type url = {
+export type Url = {
   clicks: number,
   longUrl: string, 
   shortUrl: string

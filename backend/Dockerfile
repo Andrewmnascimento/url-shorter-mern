@@ -14,15 +14,15 @@ COPY package.json pnpm-lock.yaml* ./
 FROM base AS development
 RUN pnpm install
 
-# Copiamos o resto do código
-COPY . .
+# Copiamos o resto do código, excluindo node_modules e dist
+COPY --exclude=node_modules --exclude=dist . .
 
 # Comando para iniciar (ajuste conforme o seu package.json: 'dev' ou 'start')
 CMD ["pnpm", "dev", "--host"]
 
 FROM base AS build
 RUN pnpm install --frozen-lockfile
-COPY . .
+COPY --exclude=node_modules --exclude=dist . .
 RUN pnpm build
 
 # Estágio 4: Servir os arquivos (Final)
@@ -30,4 +30,3 @@ FROM nginx:stable-alpine AS production
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-

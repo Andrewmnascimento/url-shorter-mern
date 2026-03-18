@@ -2,8 +2,8 @@ import { nanoid } from "nanoid";
 import validator from "validator";
 import type { Request, Response }  from "express"
 import { URL } from "../models/url.model.js"
-import type { url } from "../models/url.model.js"
-
+import type { Url } from "../models/url.model.js"
+import { redisClient } from "../db.js";
 
 export const createURL = async (req: Request, res: Response) => {
   try{
@@ -30,7 +30,7 @@ export const createURL = async (req: Request, res: Response) => {
     longUrl: `${longUrl}`,
     shortUrl: shortURL
   };
-  const url: url = await URL.create(newURL);
+  const url: Url = await URL.create(newURL);
   res.status(201).json(url.shortUrl);
   } catch (err: any) {
     res.status(500).json({error: `Server error: ${err.message}`})
@@ -43,13 +43,22 @@ type Params = {
 export const getURL  = async (req: Request<Params>, res: Response) => {
   const shortURL = req.params.shortURL;
   if (shortURL === "favicon.ico") return res.status(204).end();
-  const url = await URL.findOne({shortUrl: shortURL});
-  if (!url){
-    return res.status(404).json({error: "URL não encontrado"});
+  const url = await redisClient.get(shortURL);
+  let longUrl: string;
+  if (url){
+    longUrl = url
+  } else {
+    const dbUrl = await URL.findOne({shortUrl: shortURL});
+    if (!dbUrl){
+      return res.status(404).json({error: "URL não encontrado"});
+    }
+    longUrl = dbUrl.longUrl;
+    await redisClient.set(shortURL, longUrl, {EX: 3600});
   }
+  if(!longUrl) {return res.status(404).json({error: "URL não encontrado"})};
   await URL.updateOne(
     { shortUrl: shortURL},
     {$inc : {clicks: 1}}
   );
-  return res.redirect( url.longUrl );
+  return res.redirect( longUrl );
 };

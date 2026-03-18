@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "dev": "DEBUG=app:* pnpm run build & node --enable-source-maps dist/server.js",
+    "dev": "DEBUG=app:* pnpm run build && node --enable-source-maps dist/server.js",
     "build": "tsc",
     "start": "DEBUG=app:* node dist/server.js",
     "test": "vitest"

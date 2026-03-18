@@ -13,10 +13,13 @@ services:
     container_name: redis-container
     ports:
       - "6379:6379"
-    deploy:
-      resources:
-        limits:
-          memory: 300MB
+    command: >
+      redis-server
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --appendonly yes
+        --save 60 1000
+    mem_limit: 300m
 
   api:
     build: 

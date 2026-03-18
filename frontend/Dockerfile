@@ -15,14 +15,14 @@ FROM base AS development
 RUN pnpm install
 
 # Copiamos o resto do código
-COPY . .
+COPY --exclude=node_modules --exclude=dist . .
 
 # Comando para iniciar (ajuste conforme o seu package.json: 'dev' ou 'start')
 CMD ["pnpm", "dev", "--host"]
 
 FROM base AS build
 RUN pnpm install --frozen-lockfile
-COPY . .
+COPY --exclude=node_modules --exclude=dist . .
 RUN pnpm build
 
 # Estágio 4: Servir os arquivos (Final)
