@@ -5,19 +5,18 @@ import { URL } from "../models/url.model.js"
 import type { Url } from "../models/url.model.js"
 import { redisClient } from "../db.js";
 
-export const createURL = async (req: Request, res: Response) => {
+export const createURL = async (req: Request, res: Response): Promise<Response> => {
   try{
   const { longUrl } = req.body;
   
   if(!validator.isURL(longUrl)) {
-    res.status(400).json({ error: "URL Invalida"});
-    return;
+    return res.status(400).json({ error: "URL Invalida"});
+    
   };
 
   const existing = await URL.findOne({ longUrl });
   if (existing) {
-    res.status(200).json(existing.shortUrl);
-    return;
+    return res.status(200).json(existing.shortUrl);
   }
 
   let shortURL: string;
@@ -33,16 +32,16 @@ export const createURL = async (req: Request, res: Response) => {
     shortUrl: shortURL
   };
   const url: Url = await URL.create(newURL);
-  res.status(201).json(url.shortUrl);
+  return res.status(201).json(url.shortUrl);
   } catch (err: any) {
-    res.status(500).json({error: `Server error: ${err.message}`})
+    return res.status(500).json({error: `Server error: ${err.message}`});
   }
 };
 
 type Params = {
   shortURL: string
 };
-export const getURL  = async (req: Request, res: Response) => {
+export const getURL  = async (req: Request, res: Response): Promise<Response | void> => {
   const shortURL = req.params.shortURL;
   if (shortURL === "favicon.ico") return res.status(204).end();
   const url = await redisClient.get(shortURL);
@@ -52,17 +51,15 @@ export const getURL  = async (req: Request, res: Response) => {
   } else {
     const dbUrl = await URL.findOne({shortUrl: shortURL});
     if (!dbUrl){
-      res.status(404).json({error: "URL não encontrado"});
-      return;
+      return res.status(404).json({error: "URL não encontrado"});
     }
     longUrl = dbUrl.longUrl;
     await redisClient.set(shortURL, longUrl, {EX: 3600 } as any);
   }
-  if(!longUrl) {res.status(404).json({error: "URL não encontrado"}); return;};
+  if(!longUrl) return res.status(404).json({error: "URL não encontrado"});
   await URL.updateOne(
     { shortUrl: shortURL},
     {$inc : {clicks: 1}}
   );
-  res.redirect( longUrl );
-  return;
+  return res.redirect( longUrl );
 };
