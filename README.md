@@ -1,5 +1,5 @@
 ## URL Shorter
-A simple URL shortener built with Node.js ,Express and MongoDB in Backend and React in Frontend. This project allows users to create shortened URLs that redirect to the original long URLs.
+A simple URL shortener built with Node.js ,Express ,MongoDB and Redis in Backend and React in Frontend. This project allows users to create shortened URLs that redirect to the original long URLs.
 
 ### How to Run the Project
 1. Install dependencies:
