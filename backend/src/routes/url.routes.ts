@@ -3,7 +3,7 @@ import { authMiddleware } from "../middleware/auth.middleware.js";
 import { createURL, getURL } from "../controllers/url.controller.js";
 import type { RequestHandler } from "express";
 
-const router = Router();
+const router: Router = Router();
 
 router.post('/', authMiddleware as RequestHandler ,createURL);
 router.get('/:shortURL', getURL);

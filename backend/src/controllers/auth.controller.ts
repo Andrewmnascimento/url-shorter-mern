@@ -1,16 +1,12 @@
 import jwt from 'jsonwebtoken';
 import validator from 'validator';
-import type { Request, Response } from "express";
+import { type RequestHandler } from "express";
 import { User } from '../models/user.model.js';
 import type { JwtPayload } from '../types/auth.types.js';
 
-export const loginRoute = async (req: Request, res: Response) => {
+export const loginRoute: RequestHandler = async (req, res) => {
   const authHeader = req.headers.authorization;
   if(authHeader?.startsWith("Bearer ")){
-    if (!authHeader) {
-      res.status(401).json({error: "Não existe token"});
-      return; 
-    }  
     const token = authHeader.split(" ")[1] as string;
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
@@ -64,7 +60,7 @@ export const loginRoute = async (req: Request, res: Response) => {
       maxAge: 60 * 60 * 1000, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax"
+      sameSite: "strict"
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -72,7 +68,7 @@ export const loginRoute = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: 'lax'
+      sameSite: 'strict'
     });
     
     res.status(200).json({ message: "Login bem-sucedido!"});
@@ -80,7 +76,7 @@ export const loginRoute = async (req: Request, res: Response) => {
   }
 };
 
-export const registerRoute = async (req: Request, res: Response) => {
+export const registerRoute: RequestHandler = async (req, res) => {
   const { email, password } = req.body;
   if ( !email || !password || !validator.isEmail(email)){ 
     res.status(401).json({ error : "Insira um nome, email e senha"}); 
@@ -105,7 +101,7 @@ export const registerRoute = async (req: Request, res: Response) => {
   return
 };
 
-export const logoutRoute = async (req: Request, res: Response) => {
+export const logoutRoute: RequestHandler = async (req, res) => {
   try{
     const refreshToken = req.cookies.refreshToken;
   if (!refreshToken){
@@ -133,31 +129,48 @@ export const logoutRoute = async (req: Request, res: Response) => {
   }
 };
 
-export const refreshRoute = async (req: Request, res: Response) => {
-  const refreshToken = req.cookies.refreshToken;
-  if (!refreshToken){
+export const refreshRoute: RequestHandler = async (req, res) => {
+  const oldRefreshToken = req.cookies.refreshToken;
+  if (!oldRefreshToken){
     res.status(400).json({ error: "Nenhum token de atualização fornecido!"});
     return ;
   };
-  const user = await User.findOne({ refreshToken: refreshToken });
+  const user = await User.findOne({ refreshToken: oldRefreshToken });
   if (!user){
     res.status(400).json({ error: "Token de atualização inválido!"});
     return ;
   }
 
   try {
-    jwt.verify(refreshToken, process.env.REFRESH_SECRET!);
+    jwt.verify(oldRefreshToken, process.env.REFRESH_SECRET!);
     const newAccessToken = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET!,
       { expiresIn: "1h" }
     );
+
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_SECRET!,
+      { expiresIn: "7d"}
+    );
+
+    user.refreshToken = refreshToken;
+    await user.save();
     
     res.cookie("accessToken", newAccessToken, {
       maxAge: 60 * 60 * 1000, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: 'lax'
+      sameSite: 'strict'
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'strict'
     });
     
     res.status(200).json({ message: "Refresh enviado com sucesso" });

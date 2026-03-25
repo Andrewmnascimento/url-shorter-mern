@@ -22,7 +22,7 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const authRouter = Router();
+const authRouter: Router = Router();
 
 authRouter.post('/register', registerLimiter, registerRoute);
 authRouter.post('/login', loginLimiter, loginRoute);
