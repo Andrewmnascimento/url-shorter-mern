@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import validator from "validator";
-import type { Request, Response } from "express-serve-static-core";
+import type { Request, Response } from "express";
 import * as uaParser from "ua-parser-js";
 import { URL } from "../models/url.model.js";
 import { Click } from "../models/clicks.model.js";
@@ -49,7 +49,7 @@ export const redirectURL = (res: Response,longUrl: string) => {
 };
 
 export const getURL  = async (req: Request, res: Response): Promise<Response | void> => {
-  const shortURL = req.params.shortURL;
+  const shortURL = req.params.shortURL as string;
   const parser = new uaParser.UAParser(req.headers['user-agent']);
   const result = parser.getResult();
   if (shortURL === "favicon.ico") return res.status(204).end();
@@ -83,8 +83,8 @@ export const getURL  = async (req: Request, res: Response): Promise<Response | v
     deviceType: result.device.type as string
   };
   await Click.create({
-    urlId,
-    ip,
+    urlId: urlId,
+    ip: ip || req.ip as string,
     region: { country: region.country || "Unknown", city: region.city || "Unknown" },
     userAgent: userAgent
   });

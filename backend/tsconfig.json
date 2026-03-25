@@ -17,7 +17,6 @@
     "moduleResolution": "nodenext",
     "preserveSymlinks": true,
     "target": "esnext",
-    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],

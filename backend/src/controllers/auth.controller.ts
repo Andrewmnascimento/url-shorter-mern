@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import validator from 'validator';
-import type { Request, Response } from "express-serve-static-core";
+import type { Request, Response } from "express";
 import { User } from '../models/user.model.js';
 import type { JwtPayload } from '../types/auth.types.js';
 

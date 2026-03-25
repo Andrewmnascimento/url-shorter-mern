@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express-serve-static-core";
+import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "../types/auth.types.ts";
 import { createLogger } from "../utils/logger.js";

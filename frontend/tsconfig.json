@@ -12,6 +12,6 @@
     "./src"
   ],
   "compilerOptions": {
-    "skipLibCheck": true
+    "skipLibCheck": true,
   }
 }
