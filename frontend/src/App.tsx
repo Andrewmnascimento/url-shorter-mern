@@ -3,16 +3,19 @@ import { useState } from "react"
 import { LoginForm } from "./components/LoginForm";
 import { Button } from "./components/Button";
 import Cookies from "js-cookie";
+import { useNavigate } from "react-router";
+import { saveCreatedLink } from "./lib/dashboard-storage.js";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_URL ?? "http://localhost:3000";
 
 function App() {
+  const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(Cookies.get("accessToken")));
   const [originalRetry, setOriginalRetry] = useState(false);
 
   const createUrl = async (longUrl: string) => {
@@ -48,10 +51,12 @@ function App() {
     setUrl("");
     try{
       const shortUrl = await createUrl(longUrl);
+      saveCreatedLink(longUrl, shortUrl);
       setUrl(`${BACKEND_URL}/${shortUrl}`);
     } catch (err: unknown) {
       await onRefresh(err as { code?: number });
       const shortUrl = await createUrl(longUrl);
+      saveCreatedLink(longUrl, shortUrl);
       setUrl(`${BACKEND_URL}/${shortUrl}`);
     } finally {
       setIsLoading(false);
@@ -140,7 +145,10 @@ function App() {
               </Button>
             </div>
           )}
-          <Button disabled={false} onClick={() => handleLogoutClick()}>Sair</Button>
+          <div className="mt-3 flex gap-2">
+            <Button disabled={false} onClick={() => navigate("/dashboard")}>Dashboard</Button>
+            <Button disabled={false} onClick={() => handleLogoutClick()}>Sair</Button>
+          </div>
         </div>
       ): (
         <div className="flex flex-col gap-3 justify-center items-center">
@@ -157,4 +165,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

@@ -18,7 +18,7 @@ RUN pnpm install
 COPY --exclude=node_modules --exclude=dist . .
 
 # Comando para iniciar (ajuste conforme o seu package.json: 'dev' ou 'start')
-CMD ["pnpm", "dev", "--host"]
+CMD ["pnpm", "start", "--host"]
 
 FROM base AS build
 RUN pnpm install --frozen-lockfile

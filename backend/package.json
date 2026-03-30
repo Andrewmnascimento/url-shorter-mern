@@ -14,7 +14,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@swc/core": "^1.15.18",
     "@types/cookie-parser": "^1.4.10",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -24,6 +23,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
+    "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.4",
     "nanoid": "^5.1.6",
@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@swc/core": "^1.15.18",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",

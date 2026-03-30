@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@swc/core':
-        specifier: ^1.15.18
-        version: 1.15.18
       '@types/cookie-parser':
         specifier: ^1.4.10
         version: 1.4.10(@types/express@5.0.6)
@@ -38,6 +35,9 @@ importers:
       helmet:
         specifier: ^8.1.0
         version: 8.1.0
+      jose:
+        specifier: ^6.2.2
+        version: 6.2.2
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -60,6 +60,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.1.0(jiti@2.6.1))
+      '@swc/core':
+        specifier: ^1.15.18
+        version: 1.15.18
       '@types/cors':
         specifier: ^2.8.19
         version: 2.8.19
@@ -1122,6 +1125,9 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
+
+  jose@6.2.2:
+    resolution: {integrity: sha512-d7kPDd34KO/YnzaDOlikGpOurfF0ByC2sEV4cANCtdqLlTfBlw2p14O/5d/zv40gJPbIQxfES3nSx1/oYNyuZQ==}
 
   json-buffer@3.0.1:
     resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
@@ -2808,6 +2814,8 @@ snapshots:
   isexe@2.0.0: {}
 
   jiti@2.6.1: {}
+
+  jose@6.2.2: {}
 
   json-buffer@3.0.1: {}
 

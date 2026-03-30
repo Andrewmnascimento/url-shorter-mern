@@ -13,5 +13,9 @@
   ],
   "compilerOptions": {
     "skipLibCheck": true,
-  }
+    "baseUrl": ".",
+    "paths": {
+      "@/*":["./src/*"]
+    }
+  },
 }
