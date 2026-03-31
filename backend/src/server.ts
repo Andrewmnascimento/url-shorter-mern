@@ -5,6 +5,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import urlRoutes from "./routes/url.routes.js";
 import authRouter from "./routes/auth.routes.js";
+import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { connectDB } from "./db.js";
 import { requestLogger } from "./middleware/request-logger.middleware.js";
 import { createLogger } from "./utils/logger.js";
@@ -49,8 +50,9 @@ app.use(helmet());
 app.use(cookieParser());
 connectDB();
 
-app.use("/", urlRoutes);
 app.use("/auth", authRouter);
+app.use("/dashboard", dashboardRouter);
+app.use("/", urlRoutes);
 
 app.listen(PORT, "0.0.0.0", () => {
   logger.info(`🚀 Server running on port ${PORT}`);

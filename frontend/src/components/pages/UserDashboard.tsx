@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import Cookies from "js-cookie";
 import {
@@ -17,10 +17,32 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-import { getStoredLinks, type StoredShortLink } from "../../lib/dashboard-storage";
 
 type SortKey = "createdAt" | "longUrl" | "shortUrl";
 type SortDirection = "asc" | "desc";
+
+type DashboardUrl = {
+  id: string;
+  longUrl: string;
+  shortUrl: string;
+  createdAt: string;
+  clicks: number;
+};
+
+type DashboardResponse = {
+  summary: {
+    totalUrls: number;
+    totalClicks: number;
+    avgClicksPerUrl: number;
+  };
+  timeseries: Array<{ date: string; count: number }>;
+  countries: Array<{ country: string; clicks: number }>;
+  devices: Array<{ deviceType: string; clicks: number }>;
+  urls: DashboardUrl[];
+  meta?: {
+    generatedAt: string;
+  };
+};
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_URL ?? "http://localhost:3000";
@@ -33,21 +55,68 @@ const formatDate = (isoDate: string) =>
 
 const stripProtocol = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
+const ensureArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
 export const UserDashboard = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [unavailableError, setUnavailableError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
 
-  const links = useMemo(() => getStoredLinks(), []);
+  const loadDashboard = async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    else setLoading(true);
+
+    setFetchError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/dashboard`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao carregar dados do dashboard.");
+      }
+
+      const json = (await response.json()) as Partial<DashboardResponse>;
+
+      setDashboard({
+        summary: {
+          totalUrls: json.summary?.totalUrls ?? 0,
+          totalClicks: json.summary?.totalClicks ?? 0,
+          avgClicksPerUrl: json.summary?.avgClicksPerUrl ?? 0,
+        },
+        timeseries: ensureArray<{ date: string; count: number }>(json.timeseries),
+        countries: ensureArray<{ country: string; clicks: number }>(json.countries),
+        devices: ensureArray<{ deviceType: string; clicks: number }>(json.devices),
+        urls: ensureArray<DashboardUrl>(json.urls),
+        meta: json.meta,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro inesperado ao carregar dashboard.";
+      setFetchError(message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDashboard(false);
+  }, []);
+
+  const urls = dashboard?.urls ?? [];
 
   const filteredSortedLinks = useMemo(() => {
     const lowered = search.trim().toLowerCase();
 
-    const filtered = links.filter((item) => {
+    const filtered = urls.filter((item) => {
       if (!lowered) return true;
       return (
         item.longUrl.toLowerCase().includes(lowered) ||
@@ -66,50 +135,12 @@ export const UserDashboard = () => {
     });
 
     return sortDirection === "asc" ? sorted : sorted.reverse();
-  }, [links, search, sortDirection, sortKey]);
-
-  const creationSeries = useMemo(() => {
-    const grouped = links.reduce<Record<string, number>>((acc, item) => {
-      const day = new Date(item.createdAt).toISOString().slice(0, 10);
-      acc[day] = (acc[day] ?? 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(grouped)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([date, count]) => ({
-        date,
-        count,
-      }));
-  }, [links]);
-
-  const totalUrls = links.length;
+  }, [urls, search, sortDirection, sortKey]);
 
   const copyToClipboard = (value: string, id: string) => {
     navigator.clipboard.writeText(value);
     setCopiedId(id);
     window.setTimeout(() => setCopiedId(null), 1800);
-  };
-
-  const callUnavailableAnalytics = async () => {
-    setRefreshing(true);
-    setUnavailableError(null);
-
-    try {
-      const response = await fetch(`${API_BASE}/dashboard`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("O backend ainda não expõe endpoints de analytics para o dashboard.");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao consultar analytics.";
-      setUnavailableError(message);
-    } finally {
-      setRefreshing(false);
-    }
   };
 
   const onLogout = async () => {
@@ -131,22 +162,12 @@ export const UserDashboard = () => {
     setSortDirection("asc");
   };
 
-  const renderUnavailable = (title: string, detail: string) => (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{detail}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Alert className="border-dashed">
-          <AlertTitle>Dados indisponiveis</AlertTitle>
-          <AlertDescription>
-            Este bloco depende de endpoints de analytics ainda nao expostos no backend.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
-  );
+  const totalUrls = dashboard?.summary.totalUrls ?? 0;
+  const totalClicks = dashboard?.summary.totalClicks ?? 0;
+  const avgClicks = dashboard?.summary.avgClicksPerUrl ?? 0;
+  const timeseries = dashboard?.timeseries ?? [];
+  const countries = dashboard?.countries ?? [];
+  const devices = dashboard?.devices ?? [];
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_10%_20%,oklch(0.98_0.01_200),transparent_50%),radial-gradient(circle_at_90%_0%,oklch(0.95_0.03_165),transparent_42%)]">
@@ -155,25 +176,32 @@ export const UserDashboard = () => {
           <div>
             <p className="text-sm font-medium tracking-wide text-muted-foreground">Painel do Encurtador</p>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Visualize os dados que ja foram gerados pelo backend no fluxo de encurtamento.</p>
+            <p className="text-sm text-muted-foreground">Dados carregados do endpoint /dashboard.</p>
           </div>
           <div className="flex gap-2">
-            <Button disabled={refreshing} onClick={callUnavailableAnalytics}>
-              {refreshing ? "Consultando..." : "Tentar Analytics"}
+            <Button disabled={refreshing} onClick={() => void loadDashboard(true)}>
+              {refreshing ? "Atualizando..." : "Atualizar"}
             </Button>
             <Button disabled={false} onClick={() => navigate("/")}>Ir para Encurtador</Button>
             <Button disabled={false} onClick={onLogout}>Sair</Button>
           </div>
         </div>
 
-        {unavailableError && (
+        {fetchError && (
           <div className="mb-4">
-            <Alert className="border-amber-300 bg-amber-50">
-              <AlertTitle>Analytics indisponivel</AlertTitle>
-              <AlertDescription>{unavailableError}</AlertDescription>
+            <Alert className="border-red-300 bg-red-50">
+              <AlertTitle>Falha ao carregar dashboard</AlertTitle>
+              <AlertDescription>{fetchError}</AlertDescription>
             </Alert>
           </div>
         )}
+
+        {loading ? (
+          <Alert className="mb-6">
+            <AlertTitle>Carregando</AlertTitle>
+            <AlertDescription>Buscando dados do dashboard...</AlertDescription>
+          </Alert>
+        ) : null}
 
         <div className="mb-6 grid gap-4 md:grid-cols-3">
           <Card>
@@ -182,27 +210,27 @@ export const UserDashboard = () => {
               <CardTitle className="text-3xl">{totalUrls}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="secondary">Fonte: respostas do endpoint de criacao</Badge>
+              <Badge variant="secondary">Resumo</Badge>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardDescription>Total de cliques</CardDescription>
-              <CardTitle className="text-3xl">-</CardTitle>
+              <CardTitle className="text-3xl">{totalClicks}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="outline">Aguardando endpoint de leitura de cliques</Badge>
+              <Badge variant="secondary">Resumo</Badge>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardDescription>Media de cliques por URL</CardDescription>
-              <CardTitle className="text-3xl">-</CardTitle>
+              <CardTitle className="text-3xl">{avgClicks.toFixed(1)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="outline">Aguardando endpoint de agregacao</Badge>
+              <Badge variant="secondary">Resumo</Badge>
             </CardContent>
           </Card>
         </div>
@@ -210,15 +238,13 @@ export const UserDashboard = () => {
         <div className="mb-6 grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>URLs criadas por dia</CardTitle>
-              <CardDescription>
-                Serie temporal baseada nas URLs que o backend ja gerou durante seu uso.
-              </CardDescription>
+              <CardTitle>Cliques por dia</CardTitle>
+              <CardDescription>Serie temporal recebida do backend.</CardDescription>
             </CardHeader>
-            <CardContent className="h-70">
-              {creationSeries.length > 0 ? (
+            <CardContent className="h-[280px]">
+              {timeseries.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={creationSeries} margin={{ top: 12, right: 8, left: -8, bottom: 0 }}>
+                  <LineChart data={timeseries} margin={{ top: 12, right: 8, left: -8, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -226,7 +252,7 @@ export const UserDashboard = () => {
                     <Line
                       type="monotone"
                       dataKey="count"
-                      name="URLs"
+                      name="Cliques"
                       stroke="var(--color-chart-3)"
                       strokeWidth={3}
                       dot={{ r: 3 }}
@@ -235,55 +261,68 @@ export const UserDashboard = () => {
                 </ResponsiveContainer>
               ) : (
                 <Alert className="border-dashed">
-                  <AlertTitle>Sem dados ainda</AlertTitle>
-                  <AlertDescription>
-                    Crie URLs no encurtador para alimentar este grafico.
-                  </AlertDescription>
+                  <AlertTitle>Sem dados</AlertTitle>
+                  <AlertDescription>Nenhum ponto no periodo retornado.</AlertDescription>
                 </Alert>
               )}
             </CardContent>
           </Card>
 
-          {renderUnavailable(
-            "Cliques por pais",
-            "Grafico de barras reservado para os dados de origem geografica de cliques.",
-          )}
-        </div>
-
-        <div className="mb-6 grid gap-4 lg:grid-cols-2">
-          {renderUnavailable(
-            "Dispositivos",
-            "Distribuicao por desktop/mobile/tablet a partir de user-agent.",
-          )}
           <Card>
             <CardHeader>
-              <CardTitle>Projecao de paises (placeholder visual)</CardTitle>
-              <CardDescription>
-                Estrutura pronta para receber o endpoint real de cliques por pais.
-              </CardDescription>
+              <CardTitle>Cliques por pais</CardTitle>
+              <CardDescription>Top paises por cliques.</CardDescription>
             </CardHeader>
-            <CardContent className="h-55">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="country" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="clicks" fill="var(--color-chart-4)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="h-70">
+              {countries.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={countries}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="country" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="clicks" fill="var(--color-chart-4)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Alert className="border-dashed">
+                  <AlertTitle>Sem dados</AlertTitle>
+                  <AlertDescription>Nenhum dado de pais retornado.</AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Dispositivos</CardTitle>
+            <CardDescription>Distribuicao de cliques por deviceType.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {devices.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {devices.map((device) => (
+                  <Badge key={device.deviceType} variant="outline">
+                    {device.deviceType}: {device.clicks}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <Alert className="border-dashed">
+                <AlertTitle>Sem dados</AlertTitle>
+                <AlertDescription>Nenhum dado de dispositivo retornado.</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle>Historico de URLs encurtadas</CardTitle>
-                <CardDescription>
-                  Lista local das URLs criadas a partir das respostas do backend no frontend.
-                </CardDescription>
+                <CardDescription>Lista retornada pelo endpoint /dashboard.</CardDescription>
               </div>
               <input
                 value={search}
@@ -307,11 +346,12 @@ export const UserDashboard = () => {
                     <TableHead>
                       <button onClick={() => onSortChange("createdAt")} className="cursor-pointer">Criada em</button>
                     </TableHead>
+                    <TableHead>Cliques</TableHead>
                     <TableHead>Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSortedLinks.map((item: StoredShortLink) => {
+                  {filteredSortedLinks.map((item) => {
                     const shortLink = `${BACKEND_URL}/${item.shortUrl}`;
 
                     return (
@@ -319,11 +359,9 @@ export const UserDashboard = () => {
                         <TableCell className="max-w-65 truncate">{stripProtocol(item.longUrl)}</TableCell>
                         <TableCell className="font-medium">{shortLink}</TableCell>
                         <TableCell>{formatDate(item.createdAt)}</TableCell>
+                        <TableCell>{item.clicks}</TableCell>
                         <TableCell>
-                          <Button
-                            disabled={false}
-                            onClick={() => copyToClipboard(shortLink, item.id)}
-                          >
+                          <Button disabled={false} onClick={() => copyToClipboard(shortLink, item.id)}>
                             {copiedId === item.id ? "Copiado" : "Copiar"}
                           </Button>
                         </TableCell>
@@ -335,9 +373,7 @@ export const UserDashboard = () => {
             ) : (
               <Alert className="border-dashed">
                 <AlertTitle>Nenhuma URL encontrada</AlertTitle>
-                <AlertDescription>
-                  Crie URLs no encurtador para visualizar dados aqui.
-                </AlertDescription>
+                <AlertDescription>O backend nao retornou URLs para este usuario/filtro.</AlertDescription>
               </Alert>
             )}
           </CardContent>

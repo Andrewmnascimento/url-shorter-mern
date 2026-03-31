@@ -3,11 +3,31 @@ import validator from "validator";
 import type { Request, Response } from "express";
 import * as uaParser from "ua-parser-js";
 import { URL } from "../models/url.model.js";
+import { jwtVerify } from "jose";
+import { User } from "../models/user.model.js";
 import { Click } from "../models/clicks.model.js";
 import type { Url } from "../models/url.model.js";
 import { redisClient } from "../db.js";
+import type { Types } from "mongoose";
 
 export const createURL = async (req: Request, res: Response): Promise<Response> => {
+  const token: string = (req.headers.authorization)?.split(" ")[1] as string;
+  let userId: Types.ObjectId | null = null;
+    try{
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET)
+      const {payload} = await jwtVerify(token, secret);
+      if(!payload){
+        return res.status(400).json({error: "O token não foi verificado com sucesso"});
+      }
+      const dbUser = await User.findOne({ email: payload.email as string }) ;
+      if (dbUser === null){
+        return res.status(400).json({error: "Este usuario não existe no banco de dados"});
+      }
+      userId = dbUser._id;
+    } catch(err){
+      return res.status(401).json({error: "Token inválido"});
+    };
+  
   try{
   const { longUrl } = req.body;
 
@@ -31,7 +51,8 @@ export const createURL = async (req: Request, res: Response): Promise<Response> 
 
   const newURL = {
     longUrl: `${longUrl}`,
-    shortUrl: shortURL
+    shortUrl: shortURL,
+    owner: userId
   };
   const url: Url = await URL.create(newURL);
   return res.status(201).json(url.shortUrl);
