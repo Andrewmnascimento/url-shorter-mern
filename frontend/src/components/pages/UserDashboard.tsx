@@ -111,7 +111,9 @@ export const UserDashboard = () => {
     void loadDashboard(false);
   }, []);
 
-  const urls = dashboard?.urls ?? [];
+  const urls = useMemo( () => {
+    return dashboard?.urls ?? []
+  }, [dashboard?.urls]);
 
   const filteredSortedLinks = useMemo(() => {
     const lowered = search.trim().toLowerCase();
@@ -241,7 +243,7 @@ export const UserDashboard = () => {
               <CardTitle>Cliques por dia</CardTitle>
               <CardDescription>Serie temporal recebida do backend.</CardDescription>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-70">
               {timeseries.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={timeseries} margin={{ top: 12, right: 8, left: -8, bottom: 0 }}>
