@@ -77,7 +77,7 @@ export const loginRoute: RequestHandler = async (req, res) => {
 };
 
 export const registerRoute: RequestHandler = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
   if ( !email || !password || !validator.isEmail(email)){ 
     res.status(401).json({ error : "Insira um nome, email e senha"}); 
     return;
@@ -94,8 +94,7 @@ export const registerRoute: RequestHandler = async (req, res) => {
     res.status(400).json({ error: "Email já cadastrado!"});
     return;
   }
-  
-  const newUser = new User({ email, password });
+  const newUser = new User({ email, password, role });
   await newUser.save();
   res.status(201).json({ message: "Usuario criado com sucesso!" });
   return

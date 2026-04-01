@@ -1,16 +1,17 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { jwtVerify, type JWTVerifyGetKey } from "jose";
 import type { JwtPayload } from "../types/auth.types.ts";
 import { createLogger } from "../utils/logger.js";
 import type { RequestHandler } from "express";
 
 const logger = createLogger("AUTH");
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export const authMiddleware: RequestHandler = (req: Request, res: Response, next: NextFunction): void | Response => {
   const token = req.cookies.accessToken;
   
   try{
-    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as unknown as JwtPayload;
+    const payload = jwtVerify(token, secret) as unknown as JwtPayload;
     (req as any).user = payload;
     logger.debug(`User authenticated: ${payload.email}`);
     return next();

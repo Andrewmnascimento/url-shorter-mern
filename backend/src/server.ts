@@ -6,9 +6,12 @@ import dotenv from "dotenv";
 import urlRoutes from "./routes/url.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
+import {adminRouter} from "./routes/admin.routes.js";
 import { connectDB } from "./db.js";
 import { requestLogger } from "./middleware/request-logger.middleware.js";
 import { createLogger } from "./utils/logger.js";
+import { cacheStats } from "./config/stats.js";
+import { statsMiddleware } from "./middleware/stats.middleware.js";
 
 dotenv.config({ path : './.env'});
 
@@ -16,6 +19,7 @@ const logger = createLogger("SERVER");
 const PORT = Number(process.env.PORT) || 3000;
 
 const app: any = express();
+const stats = new cacheStats();
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -50,7 +54,9 @@ app.use(helmet());
 app.use(cookieParser());
 connectDB();
 
+app.use(statsMiddleware(stats));
 app.use("/auth", authRouter);
+app.use("/admin", adminRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/", urlRoutes);
 

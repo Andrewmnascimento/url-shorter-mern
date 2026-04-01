@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import validator from "validator";
-import type { Request, Response } from "express";
+import type { Request, RequestHandler, Response } from "express";
 import * as uaParser from "ua-parser-js";
 import { URL } from "../models/url.model.js";
 import { jwtVerify } from "jose";
@@ -69,7 +69,7 @@ export const redirectURL = (res: Response,longUrl: string) => {
   return res.redirect(longUrl);
 };
 
-export const getURL  = async (req: Request, res: Response): Promise<Response | void> => {
+export const getURL: RequestHandler  = async (req, res): Promise<Response | void> => {
   const shortURL = req.params.shortURL as string;
   const parser = new uaParser.UAParser(req.headers['user-agent']);
   const result = parser.getResult();
@@ -79,6 +79,7 @@ export const getURL  = async (req: Request, res: Response): Promise<Response | v
   if (url){
     longUrl = url;
     redirectURL(res, longUrl);
+    req.stats.recordHit();
   } 
   const dbUrl = await URL.findOne({shortUrl: shortURL});
   if (!dbUrl){
@@ -87,6 +88,7 @@ export const getURL  = async (req: Request, res: Response): Promise<Response | v
   if(!url){
     longUrl = dbUrl.longUrl;
     redirectURL(res, longUrl);
+    req.stats.recordMisses();
     await redisClient.set(shortURL, longUrl, {EX: 3600 } as any);
   }
   if(!longUrl) return res.status(404).json({error: "URL não encontrado"});

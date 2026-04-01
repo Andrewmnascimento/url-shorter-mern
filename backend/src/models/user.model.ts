@@ -9,6 +9,7 @@ interface IUser {
   refreshToken: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  role: string
 }
 
 interface UserMethods {
@@ -23,6 +24,7 @@ const userSchema = new Schema<IUser, UserModel, UserMethods>(
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
     refreshToken: { type: String, default: null },
+    role: { type: String, required: true, default: "Client"}
   },
   { timestamps: true }
 );
