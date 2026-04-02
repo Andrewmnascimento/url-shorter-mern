@@ -19,4 +19,4 @@ export const adminAuth: RequestHandler = async (req, res, next) => {
   (req as any).user = user;
   logger.debug(`Admin authenticated ${user.email}`);
   return next();
-}
+};

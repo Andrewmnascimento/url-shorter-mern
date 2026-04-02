@@ -3,6 +3,12 @@ import validator from 'validator';
 import { type RequestHandler } from "express";
 import { User } from '../models/user.model.js';
 import type { JwtPayload } from '../types/auth.types.js';
+import { jwtVerify } from 'jose';
+import { createLogger } from '../utils/logger.js';
+
+const adminKey = new TextEncoder().encode(process.env.ADMIN_SECRET);
+
+const logger = createLogger("AUTH")
 
 export const loginRoute: RequestHandler = async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -77,7 +83,9 @@ export const loginRoute: RequestHandler = async (req, res) => {
 };
 
 export const registerRoute: RequestHandler = async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
+  const adminToken = req.cookies.adminToken;
+  
   if ( !email || !password || !validator.isEmail(email)){ 
     res.status(401).json({ error : "Insira um nome, email e senha"}); 
     return;
@@ -94,6 +102,17 @@ export const registerRoute: RequestHandler = async (req, res) => {
     res.status(400).json({ error: "Email já cadastrado!"});
     return;
   }
+
+  let role = "Client";
+
+  try{
+    if(await jwtVerify(adminToken, adminKey)){
+      role = "admin";
+    }
+  } catch (err: any){
+    logger.warn(`We have an error ${err.message}`)
+  }
+
   const newUser = new User({ email, password, role });
   await newUser.save();
   res.status(201).json({ message: "Usuario criado com sucesso!" });
