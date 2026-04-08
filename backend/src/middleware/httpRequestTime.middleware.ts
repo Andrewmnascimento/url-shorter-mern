@@ -4,7 +4,7 @@ import client from "prom-client"
 const httpRequestDuration = new client.Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duração das requisições HTTP',
-  labelNames: ['method', 'route', 'status_code']
+  labelNames: ['method', 'route', 'code']
 })
 
 export const httpRequestTimeMiddleware: RequestHandler = (req, res, next) => {

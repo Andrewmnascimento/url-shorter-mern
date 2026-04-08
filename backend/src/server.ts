@@ -58,8 +58,8 @@ connectDB();
 app.use(statsMiddleware(stats));
 app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
-app.use("/dashboard", dashboardRouter);
 app.use("/metrics", metricsRouter);
+app.use("/dashboard", dashboardRouter);
 app.use("/", urlRoutes);
 
 app.listen(PORT, "0.0.0.0", () => {

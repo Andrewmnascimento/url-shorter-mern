@@ -50,6 +50,8 @@ services:
       resources:
         limits:
           memory: 256M
+    networks:
+      - databases
   cashe:
     image: redis:alpine
     container_name: redis-container
@@ -62,6 +64,8 @@ services:
         --appendonly yes
         --save 60 1000
     mem_limit: 300m
+    networks:
+      - databases
 
   api:
     build: 
@@ -76,6 +80,9 @@ services:
       - "3000:3000"
     depends_on:
       - database
+    networks:
+      - monitoring
+      - databases
     deploy:
       resources:
         limits:
@@ -99,6 +106,8 @@ services:
 
 networks:
   monitoring:
+    driver: bridge
+  databases:
     driver: bridge
 
 volumes:
