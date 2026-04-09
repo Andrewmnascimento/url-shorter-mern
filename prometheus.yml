@@ -18,3 +18,11 @@ scrape_configs:
     authorization:
       type: Bearer
       credentials_file: "/etc/prometheus/token.txt"
+  
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['database-exporter:9444']
+  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['cashe-exporter:9121']

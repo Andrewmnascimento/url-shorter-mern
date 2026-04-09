@@ -51,7 +51,15 @@ services:
         limits:
           memory: 256M
     networks:
-      - databases
+      - monitoring
+  database-exporter:
+    image: openg2p/mongodb-exporter:0.39.0-debian-11-r106
+    ports:
+      - "9444:9444"
+    env_file:
+      - backend/.env
+    networks:
+      - monitoring
   cashe:
     image: redis:alpine
     container_name: redis-container
@@ -65,8 +73,15 @@ services:
         --save 60 1000
     mem_limit: 300m
     networks:
-      - databases
-
+      - monitoring
+  cashe-exporter:
+    image: cleanstart/redis-exporter:1.82.0-amd64
+    ports:
+      - "9121:9121"
+    env_file:
+      - backend/.env
+    networks:
+      - monitoring
   api:
     build: 
       context: ./backend
@@ -82,7 +97,6 @@ services:
       - database
     networks:
       - monitoring
-      - databases
     deploy:
       resources:
         limits:
@@ -106,8 +120,6 @@ services:
 
 networks:
   monitoring:
-    driver: bridge
-  databases:
     driver: bridge
 
 volumes:
