@@ -6,7 +6,7 @@ import { createLogger } from "./utils/logger.js";
 dotenv.config({ path : './.env'});
 
 const logger = createLogger("DATABASE");
-const mongoURI = process.env.MONGODB_URI || "mongodb://database:27017/urlShorterDB";
+const mongoURI = process.env.MONGODB_URL || "mongodb://database:27017/urlShorterDB";
 const redisURI = process.env.REDIS_ADDR || "redis://cashe:6379";
 export const redisClient: RedisClientType = createClient({
   url: redisURI

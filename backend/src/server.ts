@@ -14,7 +14,7 @@ import { createLogger } from "./utils/logger.js";
 import { cacheStats } from "./config/stats.js";
 import { statsMiddleware } from "./middleware/stats.middleware.js";
 
-dotenv.config({ path : './.env'});
+dotenv.config({ path : '../.env'});
 
 const logger = createLogger("SERVER");
 const PORT = Number(process.env.PORT) || 3000;

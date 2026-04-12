@@ -1,12 +1,14 @@
-import jwt from 'jsonwebtoken';
+import "dotenv/config"
 import validator from 'validator';
 import { type RequestHandler } from "express";
 import { User } from '../models/user.model.js';
 import type { JwtPayload } from '../types/auth.types.js';
-import { jwtVerify } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
 import { createLogger } from '../utils/logger.js';
 
 const adminKey = new TextEncoder().encode(process.env.ADMIN_SECRET);
+const jwtKey = new TextEncoder().encode(process.env.JWT_SECRET);
+const refreshKey = new TextEncoder().encode(process.env.REFRESH_SECRET);
 
 const logger = createLogger("AUTH")
 
@@ -15,7 +17,7 @@ export const loginRoute: RequestHandler = async (req, res) => {
   if(authHeader?.startsWith("Bearer ")){
     const token = authHeader.split(" ")[1] as string;
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+      const { payload } = await jwtVerify(token, jwtKey) as unknown as { payload: JwtPayload };
       if (!payload) {
         res.status(400).json({error: "O token não foi validado pelo servidor"});
         return 
@@ -47,16 +49,16 @@ export const loginRoute: RequestHandler = async (req, res) => {
       return;
     }
 
-    const accessToken = jwt.sign(
-      {sub: user._id.toString(), email: user.email},
-      process.env.JWT_SECRET!,
-      {expiresIn: "1h"}
+    const accessToken = await createToken(
+      { sub: user._id.toString(), email: user.email },
+      jwtKey,
+      "1h"
     );
 
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.REFRESH_SECRET!,
-      { expiresIn: "7d"}
+    const refreshToken = await createToken(
+      { id: user._id.toString() },
+      refreshKey,
+      "7d"
     );
 
     user.refreshToken = refreshToken;
@@ -115,6 +117,33 @@ export const registerRoute: RequestHandler = async (req, res) => {
 
   const newUser = new User({ email, password, role });
   await newUser.save();
+  
+  const accessToken = await createToken(
+    { sub: newUser._id.toString(), email },
+    jwtKey,
+    "1h"
+  );
+
+  const refreshToken = await createToken(
+    { id: newUser._id.toString() },
+    refreshKey,
+    "7d"
+  );
+
+  res.cookie("accessToken", accessToken, {
+      maxAge: 60 * 60 * 1000, 
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict"
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'strict'
+  });
   res.status(201).json({ message: "Usuario criado com sucesso!" });
   return
 };
@@ -160,17 +189,17 @@ export const refreshRoute: RequestHandler = async (req, res) => {
   }
 
   try {
-    jwt.verify(oldRefreshToken, process.env.REFRESH_SECRET!);
-    const newAccessToken = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: "1h" }
+    await jwtVerify(oldRefreshToken, refreshKey);
+    const newAccessToken = await createToken(
+      { id: user._id.toString(), email: user.email },
+      jwtKey,
+      "1h"
     );
 
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.REFRESH_SECRET!,
-      { expiresIn: "7d"}
+    const refreshToken = await createToken(
+      { id: user._id.toString() },
+      refreshKey,
+      "7d"
     );
 
     user.refreshToken = refreshToken;
@@ -223,3 +252,15 @@ function verifyPassword(password: string): {valid: boolean, error?: string} {
   }
   return { valid: true };
 };
+
+async function createToken(
+  payload: Record<string, unknown>,
+  key: Uint8Array,
+  expiresIn: string,
+): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(key);
+}

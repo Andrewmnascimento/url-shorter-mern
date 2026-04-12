@@ -20,8 +20,11 @@ scrape_configs:
       credentials_file: "/etc/prometheus/token.txt"
   
   - job_name: 'mongodb'
+    scrape_interval: 30s
+    scrape_timeout: 30s
     static_configs:
-      - targets: ['database-exporter:9444']
+      - targets: ['database-exporter:9001']
+
   
   - job_name: 'redis'
     static_configs:

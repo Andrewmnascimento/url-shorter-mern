@@ -53,13 +53,15 @@ services:
     networks:
       - monitoring
   database-exporter:
-    image: openg2p/mongodb-exporter:0.39.0-debian-11-r106
+    image: amazonaws/mongodb_exporter
     ports:
-      - "9444:9444"
+      - "9001:9001"
     env_file:
       - backend/.env
     networks:
       - monitoring
+    depends_on:
+      - database
   cashe:
     image: redis:alpine
     container_name: redis-container
@@ -88,11 +90,14 @@ services:
       target: development
     environment:
       - NODE_OPTIONS=--max-old-space-size=350
+    hostname: api
     volumes:
       - ./backend:/app
       - /app/node_modules
     ports:
       - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       - database
     networks:
@@ -117,10 +122,12 @@ services:
       resources:
         limits:
           memory: 400M
-
+    networks:
+      - monitoring
 networks:
   monitoring:
     driver: bridge
+
 
 volumes:
   prometheus_data:
