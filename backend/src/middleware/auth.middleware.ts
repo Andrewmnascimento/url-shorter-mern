@@ -20,9 +20,14 @@ export const authMiddleware: RequestHandler = async (req: Request, res: Response
   }
   const secret = new TextEncoder().encode(process.env.JWT_SECRET);
   try{
-    const payload = await jwtVerify(token, secret) as unknown as JwtPayload;
-    (req as any).user = payload;
-    logger.debug(`User authenticated: ${payload.email}`);
+    const { payload } = await jwtVerify(token, secret);
+    const userPayload = payload as JwtPayload;
+    if (!userPayload?.email) {
+      logger.warn("Authentication failed: missing email in token payload");
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    (req as any).user = userPayload;
+    logger.debug(`User authenticated: ${userPayload.email}`);
     return next();
   } catch (error){
     const errorMessage = error instanceof Error ? error.message : "Invalid token";

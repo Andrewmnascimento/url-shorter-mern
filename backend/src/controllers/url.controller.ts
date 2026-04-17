@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import validator from "validator";
 import type { Request, RequestHandler, Response } from "express";
 import * as uaParser from "ua-parser-js";
+import * as https from "https";
 import { URL } from "../models/url.model.js";
 import { User } from "../models/user.model.js";
 import { Click } from "../models/clicks.model.js";
@@ -9,6 +10,64 @@ import type { Url } from "../models/url.model.js";
 import { redisClient } from "../db.js";
 import type { Types } from "mongoose";
 
+// cloudfare verification (using 1.1.1.3 dns)
+export const ping = (url: string): Promise<Boolean> => {
+  return new Promise( (resolve) => {
+    const req = https.request(url, { method: 'HEAD', timeout: 5000 }, (res) => {
+      const isUp = res.statusCode! >= 200 && res.statusCode! < 400;
+      resolve(isUp);
+      res.resume();
+    });
+
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+    
+    req.end();
+  })
+}
+// google safe browsing verification
+export const verifyInGoogle = async (url: string) => {
+  const token = process.env.GOOGLE_API_KEY;
+  const endpoint = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${token}`
+  const requestBody = {
+    client: {
+      clientId: "seu-projeto",
+      clientVersion: "1.0.0"
+    },
+    threatInfo: {
+      threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"],
+      platformTypes: ["ANY_PLATFORM"],
+      threatEntryTypes: ["URL"],
+      threatEntries: [{ url: url }]
+    }
+  };
+  try{
+    const response = await fetch(endpoint, {
+      method:"POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+    if(!response.ok){
+      return null;
+    }
+
+    const data = await response.json();
+
+    if(data.matches && data.matches.length > 0){
+      return false;
+    }
+
+    return true;
+  } catch (error: any) {
+    console.log(`Erro no Request pro Google: ${error.message}`)
+    return null;
+  }
+}
 export const createURL = async (req: Request, res: Response): Promise<Response> => {
   let userId: Types.ObjectId | null = null;
   const payload = (req as any).user;
@@ -20,11 +79,19 @@ export const createURL = async (req: Request, res: Response): Promise<Response> 
   
   try{
   const { longUrl } = req.body;
-
+  const dnsValidation = await ping(longUrl);
+  const googleValidation = await verifyInGoogle(longUrl);
   if(!validator.isURL(longUrl)) {
     return res.status(400).json({ error: "URL Invalida"});
-    
   };
+
+  if(!dnsValidation){
+    return res.status(400).json({error: "URL insegura"});
+  };
+
+  if(!googleValidation){
+    return res.status(400).json({error: "URL insegura para mais detalhes Aviso Fornecido pelo Google para mais detalhes: https://developers.google.com/safe-browsing/v4/advisory?hl=pt-br"})
+  }
 
   const existing = await URL.findOne({ longUrl });
   if (existing) {
