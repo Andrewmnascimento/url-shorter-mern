@@ -8,6 +8,7 @@ import authRouter from "./routes/auth.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
 import {adminRouter} from "./routes/admin.routes.js";
 import { metricsRouter } from "./routes/metrics.routes.js";
+import { notFoundMiddleware } from "./middleware/notFound.middlware.js";
 import { connectDB } from "./db.js";
 import { requestLogger } from "./middleware/request-logger.middleware.js";
 import { createLogger } from "./utils/logger.js";
@@ -61,6 +62,7 @@ app.use("/admin", adminRouter);
 app.use("/metrics", metricsRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/", urlRoutes);
+app.use("*", notFoundMiddleware);
 
 app.listen(PORT, "0.0.0.0", () => {
   logger.info(`🚀 Server running on port ${PORT}`);
