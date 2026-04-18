@@ -19,71 +19,76 @@ export const dashboardRoute: RequestHandler = async (req, res) => {
   const user: Types.ObjectId = dbUser._id;
 
   const dashboardData = await URL.aggregate([
-    { $match: { owner: new Types.ObjectId(user)}},
-
-    {
-      $lookup: {
-        from:"click",
-        localField:"_id",
-        foreignField:"urlId",
-        as: "clickDetails"
-      }
-    },
-
-    {
-      $addFields:{
-        clicksCount: { $size: "$clickDetails"}
-      }
-    },
-
-    {
-      $facet: {
-        "summary":[
-          {
-            $group: {
-              _id: null,
-              totalUrls: { $sum: 1 },
-              totalClicks: { $sum: "$clicksCount"}
-            }
-          },
-          {
-          $project: {
-            _id: 0,
-            totalUrls: 1,
-            totalClicks: 1,
-            avgClicksPerUrl: { 
-              $cond: [ { $eq: ["$totalUrls", 0] }, 0, { $divide: ["$totalClicks", "$totalUrls"] } ] 
-            }
-          }
-          }
-        ],
-        "timeseries":[
-          { $unwind: "$clickDetails"},
-          {
-            $group:{
-              _id:{ $dateToString: { format: "%Y-%m-%d", date: "$clickDetails.createdAt"}},
-              count: { $sum: 1 }
-            }
-          },
-          { $project: {_id: 0, date: "$_id", count: 1 } },
-          { $sort: { date: 1 }}
-        ],
-        "urls":[
-          { $sort: { createdAt: -1}},
-          { $limit: 10 },
-          {
-            $project:{
-              id:"$_id",
-              longUrl:1,
-              shortUrl: 1,
-              createdAt:1,
-              clicks: "$clicksCount"
-            }
-          }
-        ]
-      }
+  { $match: { owner: new Types.ObjectId(user) } },
+  {
+    $lookup: {
+      from: "clicks", // Verifique se no DB é 'click' ou 'clicks'
+      localField: "_id",
+      foreignField: "urlId",
+      as: "clickDetails"
     }
-  ]);
+  },
+  { $addFields: { clicksCount: { $size: "$clickDetails" } } },
+  {
+    $facet: {
+      "summary": [
+        {
+          $group: {
+            _id: null,
+            totalUrls: { $sum: 1 },
+            totalClicks: { $sum: "$clicksCount" }
+          }
+        }
+      ],
+      "timeseries": [
+        { $unwind: "$clickDetails" },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$clickDetails.createdAt" } },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { "_id": 1 } }
+      ],
+      // AJUSTADO PARA: region.country
+      "countries": [
+        { $unwind: "$clickDetails" },
+        {
+          $group: {
+            _id: { $ifNull: ["$clickDetails.region.country", "Unknown"] },
+            count: { $sum: 1 }
+          }
+        },
+        { $project: { country: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } }
+      ],
+      // AJUSTADO PARA: userAgent.browser (ou .os, se preferires)
+      "devices": [
+        { $unwind: "$clickDetails" },
+        {
+          $group: {
+            _id: { $ifNull: ["$clickDetails.userAgent.browser", "Unknown"] },
+            count: { $sum: 1 }
+          }
+        },
+        { $project: { device: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } }
+      ],
+      "urls": [
+        { $sort: { createdAt: -1 } },
+        { $limit: 10 },
+        {
+          $project: {
+            shortUrl: 1,
+            longUrl: 1,
+            createdAt: 1,
+            clicks: "$clicksCount"
+          }
+        }
+      ]
+    }
+  }
+]);
   const result = dashboardData[0];
   // Ajustes finais de meta e default
   result.meta = { generatedAt: new Date().toISOString() };

@@ -155,7 +155,8 @@ export const getURL: RequestHandler  = async (req, res): Promise<Response | void
   );
   const urlId = dbUrl._id;
   const ip = req.ip;
-  const region = await (await fetch(`http://ip-api.com/json/${ip}`)).json();
+  const regionData = await fetch(`http://ip-api.com/json/${ip}`);
+  const region = await regionData.json();
   const userAgent = {
     raw : req.headers['user-agent'] as string,
     browser : result.browser.name as string,

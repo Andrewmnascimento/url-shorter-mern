@@ -129,6 +129,8 @@ export const registerRoute: RequestHandler = async (req, res) => {
     refreshKey,
     "7d"
   );
+  newUser.refreshToken = refreshToken;
+  await newUser.save();
 
   res.cookie("accessToken", accessToken, {
       maxAge: 60 * 60 * 1000, 

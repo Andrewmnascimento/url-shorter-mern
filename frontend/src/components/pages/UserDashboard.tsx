@@ -36,8 +36,8 @@ type DashboardResponse = {
     avgClicksPerUrl: number;
   };
   timeseries: Array<{ date: string; count: number }>;
-  countries: Array<{ country: string; clicks: number }>;
-  devices: Array<{ deviceType: string; clicks: number }>;
+  countries: Array<{ country: string; count: number }>;
+  devices: Array<{ device: string; count: number }>;
   urls: DashboardUrl[];
   meta?: {
     generatedAt: string;
@@ -93,8 +93,8 @@ export const UserDashboard = () => {
           avgClicksPerUrl: json.summary?.avgClicksPerUrl ?? 0,
         },
         timeseries: ensureArray<{ date: string; count: number }>(json.timeseries),
-        countries: ensureArray<{ country: string; clicks: number }>(json.countries),
-        devices: ensureArray<{ deviceType: string; clicks: number }>(json.devices),
+        countries: ensureArray<{ country: string; count: number }>(json.countries),
+        devices: ensureArray<{ device: string; count: number }>(json.devices),
         urls: ensureArray<DashboardUrl>(json.urls),
         meta: json.meta,
       });
@@ -283,7 +283,7 @@ export const UserDashboard = () => {
                     <XAxis dataKey="country" />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="clicks" fill="var(--color-chart-4)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="var(--color-chart-4)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -305,8 +305,8 @@ export const UserDashboard = () => {
             {devices.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {devices.map((device) => (
-                  <Badge key={device.deviceType} variant="outline">
-                    {device.deviceType}: {device.clicks}
+                  <Badge key={device.device} variant="outline">
+                    {device.device}: {device.count}
                   </Badge>
                 ))}
               </div>
