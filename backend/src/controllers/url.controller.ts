@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { hashUrl } from "../utils/hashUrl.js"
 import validator from "validator";
 import type { Request, RequestHandler, Response } from "express";
 import * as uaParser from "ua-parser-js";
@@ -82,15 +83,16 @@ export const createURL = async (req: Request, res: Response): Promise<Response> 
   
   try{
   const { longUrl } = req.body;
+  const hashedLongUrl = hashUrl(longUrl);
   const dnsValidation = await ping(longUrl);
-  const casheValidation = (await redisClient.get(`url:security:${longUrl}`)) === "secure";
+  const casheValidation = (await redisClient.get(`url:security:${hashedLongUrl}`)) === "secure";
   if(!casheValidation){
     const googleValidation = await verifyInGoogle(longUrl);
     const securityLevel = googleValidation ? 'secure' : 'blocked';
     if(!googleValidation){
     return res.status(400).json({error: "URL insegura para mais detalhes Aviso Fornecido pelo Google para mais detalhes: https://developers.google.com/safe-browsing/v4/advisory?hl=pt-br"})
     }
-    await redisClient.set(`url:security:${longUrl}`, securityLevel, { EX: 3600 })
+    await redisClient.set(`url:security:${hashedLongUrl}`, securityLevel, { EX: 3600 })
   }
   
   if(!validator.isURL(longUrl)) {
@@ -124,10 +126,6 @@ export const createURL = async (req: Request, res: Response): Promise<Response> 
   } catch (err: any) {
     return res.status(500).json({error: `Server error: ${err.message}`});
   }
-};
-
-type Params = {
-  shortURL: string
 };
 
 export const redirectURL = (res: Response,longUrl: string) => {
