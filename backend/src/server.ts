@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from "helmet";
 import dotenv from "dotenv";
+import { xss } from "express-xss-sanitizer";
 import urlRoutes from "./routes/url.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
@@ -53,6 +54,7 @@ app.use(cors(corsOptions));
 app.use(requestLogger);
 app.use(express.json());
 app.use(helmet());
+app.use(xss());
 app.use(cookieParser());
 connectDB();
 
@@ -62,7 +64,7 @@ app.use("/admin", adminRouter);
 app.use("/metrics", metricsRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/", urlRoutes);
-app.use("*", notFoundMiddleware);
+app.use(notFoundMiddleware);
 
 app.listen(PORT, "0.0.0.0", () => {
   logger.info(`🚀 Server running on port ${PORT}`);
