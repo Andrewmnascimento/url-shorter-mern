@@ -83,7 +83,16 @@ export const createURL = async (req: Request, res: Response): Promise<Response> 
   try{
   const { longUrl } = req.body;
   const dnsValidation = await ping(longUrl);
-  const googleValidation = await verifyInGoogle(longUrl);
+  const casheValidation = (await redisClient.get(`url:security:${longUrl}`)) === "secure";
+  if(!casheValidation){
+    const googleValidation = await verifyInGoogle(longUrl);
+    const securityLevel = googleValidation ? 'secure' : 'blocked';
+    if(!googleValidation){
+    return res.status(400).json({error: "URL insegura para mais detalhes Aviso Fornecido pelo Google para mais detalhes: https://developers.google.com/safe-browsing/v4/advisory?hl=pt-br"})
+    }
+    await redisClient.set(`url:security:${longUrl}`, securityLevel, { EX: 3600 })
+  }
+  
   if(!validator.isURL(longUrl)) {
     return res.status(400).json({ error: "URL Invalida"});
   };
@@ -91,10 +100,6 @@ export const createURL = async (req: Request, res: Response): Promise<Response> 
   if(!dnsValidation){
     return res.status(400).json({error: "URL insegura"});
   };
-
-  if(!googleValidation){
-    return res.status(400).json({error: "URL insegura para mais detalhes Aviso Fornecido pelo Google para mais detalhes: https://developers.google.com/safe-browsing/v4/advisory?hl=pt-br"})
-  }
 
   const existing = await URL.findOne({ longUrl });
   if (existing) {
@@ -134,7 +139,7 @@ export const getURL: RequestHandler  = async (req, res): Promise<Response | void
   const parser = new uaParser.UAParser(req.headers['user-agent']);
   const result = parser.getResult();
   if (shortURL === "favicon.ico") return res.status(204).end();
-  const url = await redisClient.get(shortURL);
+  const url = await redisClient.get(`url:short:${shortURL}`);
   let longUrl: string = "";
   if (url){
     longUrl = url;
@@ -149,7 +154,7 @@ export const getURL: RequestHandler  = async (req, res): Promise<Response | void
     longUrl = dbUrl.longUrl;
     redirectURL(res, longUrl);
     req.stats.recordMisses();
-    await redisClient.set(shortURL, longUrl, {EX: 3600 } as any);
+    await redisClient.set(`url:short:${shortURL}`, longUrl, {EX: 3600 } as any);
   }
   if(!longUrl) return res.status(404).json({error: "URL não encontrado"});
   await URL.updateOne(
