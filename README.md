@@ -3,6 +3,7 @@
 A full-stack URL shortener with **strong focus on security**. Built as a study project to learn about web security and pratice modern full-stack development.
 
 **Frontend**: React
+
 **Backend**: Node.js + Express + MongoDB + Redis
 
 The application allows registered users to create short URLs that redirect to original long URLs. It includes features such as user authentication, URL management, analytics, and security measures to protect against common web vulnerabilities.
