@@ -1,4 +1,5 @@
 import express from "express";
+import type { Express } from "express";
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from "helmet";
@@ -21,7 +22,7 @@ dotenv.config({ path : '../.env'});
 const logger = createLogger("SERVER");
 const PORT = Number(process.env.PORT) || 3000;
 
-const app: any = express();
+export const app: Express = express();
 const stats = new cacheStats();
 
 const allowedOrigins = [
