@@ -9,6 +9,9 @@ import { Click } from "../models/clicks.model.js";
 import type { Url } from "../models/url.model.js";
 import { redisClient } from "../db.js";
 import type { Types } from "mongoose";
+import { createLogger } from "../utils/logger.js";
+
+const logger = createLogger("URL");
 
 // cloudfare verification (using 1.1.1.3 dns)
 export const ping = (url: string): Promise<Boolean> => {
@@ -34,7 +37,7 @@ export const verifyInGoogle = async (url: string) => {
   const endpoint = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${token}`
   const requestBody = {
     client: {
-      clientId: "seu-projeto",
+      clientId: "url-shortner",
       clientVersion: "1.0.0"
     },
     threatInfo: {
@@ -64,7 +67,7 @@ export const verifyInGoogle = async (url: string) => {
 
     return true;
   } catch (error: any) {
-    console.log(`Erro no Request pro Google: ${error.message}`)
+    logger.error(`Erro no Request pro Google: ${error.message}`)
     return null;
   }
 }
