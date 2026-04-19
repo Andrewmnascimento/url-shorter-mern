@@ -37,15 +37,11 @@ export const loginRoute: RequestHandler = async (req, res) => {
       return;
     };
     const user = await User.findOne({ email: email});
-    if (!user){
-      res.status(401).json({ error: "Não existe usuario com esse email"});
-      return;
-    }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user?.comparePassword(password);
 
-    if(!isMatch){
-      res.status(400).json({error: "A senha está incorreta!"});
+    if (!user || !isMatch){
+      res.status(400).json({ error: "Email ou senha incorreto"});
       return;
     }
 

@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@jest-mock/express": "^3.0.0",
     "@swc/core": "^1.15.24",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
