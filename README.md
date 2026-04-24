@@ -52,7 +52,7 @@ The design is minimalistic, responsive and priozitizes usability and clarity.
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Andrewmnascimento/url-shorter-mern.git
    ```
 2. Navigate to the project directory:
    ```bash
