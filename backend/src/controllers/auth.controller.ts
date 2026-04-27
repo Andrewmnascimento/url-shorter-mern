@@ -23,7 +23,7 @@ export const loginRoute: RequestHandler = async (req, res) => {
         return 
       }
       const user = await User.findOne({ email: payload.email });
-      if (!user) { res.status(400).json({error: "Não existe esse usuario"}); return; }
+      if (!user) { res.status(400).json({error: "Credenciais Inválidas"}); return; }
       res.status(200).json({ message: "Login bem-sucedido!"});
       return;
     } catch (err: any) {
@@ -62,9 +62,10 @@ export const loginRoute: RequestHandler = async (req, res) => {
 
     res.cookie("accessToken", accessToken, {
       maxAge: 60 * 60 * 1000, 
+      httpOnly: true,
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict"
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -72,7 +73,7 @@ export const loginRoute: RequestHandler = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: 'strict'
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
     
     res.status(200).json({ message: "Login bem-sucedido!"});
@@ -131,6 +132,7 @@ export const registerRoute: RequestHandler = async (req, res) => {
   res.cookie("accessToken", accessToken, {
       maxAge: 60 * 60 * 1000, 
       path: "/",
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict"
   });
@@ -204,10 +206,11 @@ export const refreshRoute: RequestHandler = async (req, res) => {
     await user.save();
     
     res.cookie("accessToken", newAccessToken, {
-      maxAge: 60 * 60 * 1000, 
+      maxAge: 60 * 60 * 1000,
+      httpOnly: true, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: 'strict'
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -215,7 +218,7 @@ export const refreshRoute: RequestHandler = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, 
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      sameSite: 'strict'
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
     
     res.status(200).json({ message: "Refresh enviado com sucesso" });

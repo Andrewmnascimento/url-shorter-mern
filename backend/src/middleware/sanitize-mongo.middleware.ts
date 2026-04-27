@@ -22,7 +22,7 @@ function sanitizeValue(value: unknown): unknown {
 function sanitizeObject(obj: PlainObject): PlainObject {
   const out: PlainObject = {};
   for (const key of Object.keys(obj)) {
-    if (key.startsWith('$') || key.includes('.')) continue;
+    if (key.startsWith('$') || key.includes('.')) throw new Error("Invalid field detected");
     const val = (obj as any)[key];
     (out as any)[key] = sanitizeValue(val);
   }

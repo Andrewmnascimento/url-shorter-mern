@@ -18,6 +18,14 @@ vi.mock('../models/url.model.js', () => ({
   }
 }));
 
+vi.mock('../db.js', () => ({
+  redisClient: {
+    // return "secure" to bypass Google verification during tests
+    get: vi.fn().mockResolvedValue("secure"),
+    set: vi.fn().mockResolvedValue(null),
+  }
+}));
+
 describe("Url Controller", () => {
   it("should return 200 and the correct shortUrl", async () => {
     const userMock = mockMongooseDoc({_id: new Types.ObjectId(), email: 'teste@email.com'});
