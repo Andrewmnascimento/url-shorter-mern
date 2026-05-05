@@ -28,7 +28,7 @@ export const loginRoute: RequestHandler = async (req, res) => {
       return;
     } catch (err: any) {
       res.status(401).json({error: "Token inválido"});
-      return 
+      return; 
     }
   } else { 
     const { email, password } = req.body;

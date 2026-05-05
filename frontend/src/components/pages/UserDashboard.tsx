@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import Cookies from "js-cookie";
 import {
@@ -13,181 +13,89 @@ import {
   YAxis,
 } from "recharts";
 import { Button } from "../Button";
+import { Input } from "../Input";
+import { PageShell } from "../layout/PageShell";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-
-type SortKey = "createdAt" | "longUrl" | "shortUrl";
-type SortDirection = "asc" | "desc";
-
-type DashboardUrl = {
-  id: string;
-  longUrl: string;
-  shortUrl: string;
-  createdAt: string;
-  clicks: number;
-};
-
-type DashboardResponse = {
-  summary: {
-    totalUrls: number;
-    totalClicks: number;
-    avgClicksPerUrl: number;
-  };
-  timeseries: Array<{ date: string; count: number }>;
-  countries: Array<{ country: string; count: number }>;
-  devices: Array<{ device: string; count: number }>;
-  urls: DashboardUrl[];
-  meta?: {
-    generatedAt: string;
-  };
-};
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
-const BACKEND_URL = import.meta.env.VITE_PUBLIC_URL ?? "http://localhost:3000";
-
-const formatDate = (isoDate: string) =>
-  new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(isoDate));
-
-const stripProtocol = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-
-const ensureArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+import { DashboardMetricCard } from "../../features/dashboard/components/DashboardMetricCard";
+import { formatDate, stripProtocol, useDashboard } from "../../features/dashboard/hooks/useDashboard";
+import { logout as logoutSession } from "../../features/auth/auth-api";
+import { PUBLIC_URL } from "../../lib/api";
 
 export const UserDashboard = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
-
-  const loadDashboard = async (isManual = false) => {
-    if (isManual) setRefreshing(true);
-    else setLoading(true);
-
-    setFetchError(null);
-
-    try {
-      const response = await fetch(`${API_BASE}/dashboard`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao carregar dados do dashboard.");
-      }
-
-      const json = (await response.json()) as Partial<DashboardResponse>;
-
-      setDashboard({
-        summary: {
-          totalUrls: json.summary?.totalUrls ?? 0,
-          totalClicks: json.summary?.totalClicks ?? 0,
-          avgClicksPerUrl: json.summary?.avgClicksPerUrl ?? 0,
-        },
-        timeseries: ensureArray<{ date: string; count: number }>(json.timeseries),
-        countries: ensureArray<{ country: string; count: number }>(json.countries),
-        devices: ensureArray<{ device: string; count: number }>(json.devices),
-        urls: ensureArray<DashboardUrl>(json.urls),
-        meta: json.meta,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro inesperado ao carregar dashboard.";
-      setFetchError(message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadDashboard(false);
-  }, []);
-
-  const urls = useMemo( () => {
-    return dashboard?.urls ?? []
-  }, [dashboard?.urls]);
-
-  const filteredSortedLinks = useMemo(() => {
-    const lowered = search.trim().toLowerCase();
-
-    const filtered = urls.filter((item) => {
-      if (!lowered) return true;
-      return (
-        item.longUrl.toLowerCase().includes(lowered) ||
-        item.shortUrl.toLowerCase().includes(lowered)
-      );
-    });
-
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortKey === "createdAt") {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }
-
-      const left = a[sortKey].toLowerCase();
-      const right = b[sortKey].toLowerCase();
-      return left.localeCompare(right);
-    });
-
-    return sortDirection === "asc" ? sorted : sorted.reverse();
-  }, [urls, search, sortDirection, sortKey]);
-
-  const copyToClipboard = (value: string, id: string) => {
-    navigator.clipboard.writeText(value);
-    setCopiedId(id);
-    window.setTimeout(() => setCopiedId(null), 1800);
-  };
+  const [actionError, setActionError] = useState("");
+  const {
+    search,
+    setSearch,
+    sortKey,
+    sortDirection,
+    copiedId,
+    loading,
+    refreshing,
+    fetchError,
+    filteredSortedLinks,
+    totalUrls,
+    totalClicks,
+    avgClicks,
+    timeseries,
+    countries,
+    devices,
+    loadDashboard,
+    copyToClipboard,
+    onSortChange,
+  } = useDashboard();
 
   const onLogout = async () => {
-    await fetch(`${API_BASE}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-    Cookies.remove("accessToken");
-    navigate("/");
-  };
+    setActionError("");
 
-  const onSortChange = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
-      return;
+    try {
+      await logoutSession();
+      Cookies.remove("accessToken");
+      navigate("/");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao fazer logout.";
+      setActionError(message);
     }
-
-    setSortKey(key);
-    setSortDirection("asc");
   };
 
-  const totalUrls = dashboard?.summary.totalUrls ?? 0;
-  const totalClicks = dashboard?.summary.totalClicks ?? 0;
-  const avgClicks = dashboard?.summary.avgClicksPerUrl ?? 0;
-  const timeseries = dashboard?.timeseries ?? [];
-  const countries = dashboard?.countries ?? [];
-  const devices = dashboard?.devices ?? [];
+  const sortIndicator = (key: "createdAt" | "longUrl" | "shortUrl") =>
+    sortKey === key ? (sortDirection === "asc" ? " ↑" : " ↓") : "";
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_10%_20%,oklch(0.98_0.01_200),transparent_50%),radial-gradient(circle_at_90%_0%,oklch(0.95_0.03_165),transparent_42%)]">
-      <div className="mx-auto w-full max-w-7xl p-4 md:p-8">
+    <PageShell>
+      <div className="mx-auto w-full max-w-7xl">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-medium tracking-wide text-muted-foreground">Painel do Encurtador</p>
+            <p className="text-sm font-medium tracking-wide text-muted-foreground">
+              Painel do Encurtador
+            </p>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground">Dados carregados do endpoint /dashboard.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button disabled={refreshing} onClick={() => void loadDashboard(true)}>
               {refreshing ? "Atualizando..." : "Atualizar"}
             </Button>
-            <Button disabled={false} onClick={() => navigate("/")}>Ir para Encurtador</Button>
-            <Button disabled={false} onClick={onLogout}>Sair</Button>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Ir para Encurtador
+            </Button>
+            <Button variant="secondary" onClick={() => void onLogout()}>
+              Sair
+            </Button>
           </div>
         </div>
+
+        {actionError && (
+          <div className="mb-4">
+            <Alert className="border-red-300 bg-red-50">
+              <AlertTitle>Falha na ação</AlertTitle>
+              <AlertDescription>{actionError}</AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {fetchError && (
           <div className="mb-4">
@@ -206,35 +114,13 @@ export const UserDashboard = () => {
         ) : null}
 
         <div className="mb-6 grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardDescription>Total de URLs criadas</CardDescription>
-              <CardTitle className="text-3xl">{totalUrls}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="secondary">Resumo</Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardDescription>Total de cliques</CardDescription>
-              <CardTitle className="text-3xl">{totalClicks}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="secondary">Resumo</Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardDescription>Media de cliques por URL</CardDescription>
-              <CardTitle className="text-3xl">{avgClicks.toFixed(1)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="secondary">Resumo</Badge>
-            </CardContent>
-          </Card>
+          <DashboardMetricCard description="Total de URLs criadas" label="Resumo" value={totalUrls} />
+          <DashboardMetricCard description="Total de cliques" label="Resumo" value={totalClicks} />
+          <DashboardMetricCard
+            description="Media de cliques por URL"
+            label="Resumo"
+            value={avgClicks.toFixed(1)}
+          />
         </div>
 
         <div className="mb-6 grid gap-4 lg:grid-cols-2">
@@ -243,7 +129,7 @@ export const UserDashboard = () => {
               <CardTitle>Cliques por dia</CardTitle>
               <CardDescription>Serie temporal recebida do backend.</CardDescription>
             </CardHeader>
-            <CardContent className="h-70">
+            <CardContent className="h-72">
               {timeseries.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={timeseries} margin={{ top: 12, right: 8, left: -8, bottom: 0 }}>
@@ -275,7 +161,7 @@ export const UserDashboard = () => {
               <CardTitle>Cliques por pais</CardTitle>
               <CardDescription>Top paises por cliques.</CardDescription>
             </CardHeader>
-            <CardContent className="h-70">
+            <CardContent className="h-72">
               {countries.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={countries}>
@@ -326,11 +212,11 @@ export const UserDashboard = () => {
                 <CardTitle>Historico de URLs encurtadas</CardTitle>
                 <CardDescription>Lista retornada pelo endpoint /dashboard.</CardDescription>
               </div>
-              <input
+              <Input
+                className="md:max-w-xs"
+                placeholder="Pesquisar por URL longa ou curta"
                 value={search}
                 onChange={(event) => setSearch(event.currentTarget.value)}
-                placeholder="Pesquisar por URL longa ou curta"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm md:max-w-xs"
               />
             </div>
           </CardHeader>
@@ -340,13 +226,19 @@ export const UserDashboard = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>
-                      <button onClick={() => onSortChange("longUrl")} className="cursor-pointer">URL original</button>
+                      <button onClick={() => onSortChange("longUrl")} className="cursor-pointer">
+                        URL original{sortIndicator("longUrl")}
+                      </button>
                     </TableHead>
                     <TableHead>
-                      <button onClick={() => onSortChange("shortUrl")} className="cursor-pointer">URL curta</button>
+                      <button onClick={() => onSortChange("shortUrl")} className="cursor-pointer">
+                        URL curta{sortIndicator("shortUrl")}
+                      </button>
                     </TableHead>
                     <TableHead>
-                      <button onClick={() => onSortChange("createdAt")} className="cursor-pointer">Criada em</button>
+                      <button onClick={() => onSortChange("createdAt")} className="cursor-pointer">
+                        Criada em{sortIndicator("createdAt")}
+                      </button>
                     </TableHead>
                     <TableHead>Cliques</TableHead>
                     <TableHead>Acoes</TableHead>
@@ -354,7 +246,7 @@ export const UserDashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredSortedLinks.map((item) => {
-                    const shortLink = `${BACKEND_URL}/${item.shortUrl}`;
+                    const shortLink = `${PUBLIC_URL}/${item.shortUrl}`;
 
                     return (
                       <TableRow key={item.id}>
@@ -363,7 +255,10 @@ export const UserDashboard = () => {
                         <TableCell>{formatDate(item.createdAt)}</TableCell>
                         <TableCell>{item.clicks}</TableCell>
                         <TableCell>
-                          <Button disabled={false} onClick={() => copyToClipboard(shortLink, item.id)}>
+                          <Button
+                            variant="outline"
+                            onClick={() => copyToClipboard(shortLink, item.id)}
+                          >
                             {copiedId === item.id ? "Copiado" : "Copiar"}
                           </Button>
                         </TableCell>
@@ -381,6 +276,6 @@ export const UserDashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 };

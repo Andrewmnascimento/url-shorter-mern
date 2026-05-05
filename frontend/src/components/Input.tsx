@@ -1,3 +1,19 @@
-export const Input = ({ placeholder, onChange, type, onKeyDown }: { placeholder?: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; type: string; onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void }) => {
-  return <input type={type} placeholder={placeholder} onChange={onChange} onKeyDown={onKeyDown} className="flex-1 rounded-lg border-2 border-gray-300 h-11 px-4 text-sm focus:outline-none focus:border-black transition-colors" />
-}
+import type { InputHTMLAttributes } from "react";
+import { cn } from "../lib/utils";
+
+export const Input = ({
+  className,
+  type = "text",
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) => {
+  return (
+    <input
+      className={cn(
+        "flex h-11 w-full rounded-lg border border-input bg-background px-4 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+      type={type}
+      {...props}
+    />
+  );
+};
