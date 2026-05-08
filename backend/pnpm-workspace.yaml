@@ -1,2 +1,5 @@
 allowBuilds:
   bcrypt: false
+overrides:
+  ip-address@<=10.1.0: '>=10.1.1'
+  vite@>=8.0.0 <=8.0.4: '>=8.0.5'
